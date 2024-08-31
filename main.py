@@ -6,8 +6,12 @@ from pymilvus import connections, Collection
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_community.vectorstores import Milvus
 from langchain.chains import RetrievalQA
+from langchain.prompts import PromptTemplate  # Import PromptTemplate
 from constants import CONNECTION_ARGS, COLLECTION_NAME
 from langchain_core.documents.base import Document
+
+# Set hyperparameters
+TOP_K = 5  # Number of top documents to retrieve
 
 # Load environment variables
 load_dotenv()
@@ -70,24 +74,51 @@ def setup_custom_rag_chain():
         return None
 
     try:
-        llm = ChatOpenAI(api_key=OPENAI_API_KEY, temperature=0)
+            # Use GPT-4 model
+        llm = ChatOpenAI(api_key=OPENAI_API_KEY, model="gpt-4", temperature=0)
+
+
     except Exception as e:
         logging.error(f"Error initializing ChatOpenAI LLM: {e}")
         return None
 
     try:
-        retriever = vector_store.as_retriever(search_type="mmr", search_kwargs={
-                                              "k": 5, "lambda_mult": 0.25})
+        # Configure retriever to always return top k closest documents
+        retriever = vector_store.as_retriever(
+            search_type="similarity",
+            search_kwargs={
+                "k": TOP_K  # Ensure that TOP_K is set to the number of documents you want
+            }
+        )
     except Exception as e:
         logging.error(f"Error configuring retriever: {e}")
         return None
+
+    # Define the prompt template to instruct the model
+    prompt_template = PromptTemplate(
+        template="""
+        You are a helpful assistant. Answer the question based solely on the provided context. 
+        If the context does not provide enough information, respond with "I don't know."
+        
+        Context:
+        {context}
+        
+        Question:
+        {question}
+        
+        Answer:
+        """,
+        input_variables=["context", "question"]
+    )
 
     try:
         custom_chain = RetrievalQA.from_chain_type(
             llm=llm,
             retriever=retriever,
             chain_type="stuff",
-            return_source_documents=True
+            return_source_documents=True,
+            # Apply prompt template
+            chain_type_kwargs={"prompt": prompt_template}
         )
     except Exception as e:
         logging.error(f"Error creating custom RAG chain: {e}")
@@ -108,23 +139,28 @@ def main():
             logging.info("User exited the conversation.")
             print("Goodbye!")
             break
-
+        print("\n--------------------------\n")
         try:
             response = rag_chain.invoke({"query": user_input})
         except Exception as e:
             logging.error(f"Error generating response: {e}")
             continue
 
-        print(f"Bot: {response['result']}")
+        # Check if there are source documents retrieved
+        if response and 'source_documents' in response and response['source_documents']:
+            print(f"\n\nBot: \n{response['result']}\n")
 
-        if 'source_documents' in response:
-            print("\nRetrieved Documents:")
+            print("\nRetrieved Documents:\n")
+            count = 0
             for doc in response['source_documents']:
-                metadata = doc.metadata
-                content_snippet = doc.page_content[:100]
-                print(
-                    f"- Document ID: {metadata.get('id', 'N/A')}, Snippet: {content_snippet}")
+                count += 1
+                # Retrieve filename from metadata
+                filename = doc.metadata.get("filename", "Unknown")
+                print(f"{count}. {filename}")
+            print("\n--------------------------\n")
         else:
+            # No relevant documents found
+            print("Bot: I don't know. No relevant documents were retrieved.")
             logging.warning("No source documents retrieved.")
 
 

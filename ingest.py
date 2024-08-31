@@ -2,6 +2,7 @@ import os
 import uuid
 import click
 import logging
+from tqdm import tqdm
 from dotenv import load_dotenv
 from langchain_openai import OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -31,7 +32,9 @@ def create_collection():
                         max_length=36, is_primary=True),
             FieldSchema(name="embedding",
                         dtype=DataType.FLOAT_VECTOR, dim=VECTOR_DIM),
-            FieldSchema(name="text", dtype=DataType.VARCHAR, max_length=8192)
+            FieldSchema(name="text", dtype=DataType.VARCHAR, max_length=8192),
+            FieldSchema(name="filename", dtype=DataType.VARCHAR,
+                        max_length=256)  # Add filename field
         ]
         schema = CollectionSchema(
             fields, description="QA Embeddings collection")
@@ -45,15 +48,16 @@ def create_collection():
 
 def load_documents(source_dir):
     documents = []
-    for filename in os.listdir(source_dir):
+    for filename in tqdm(os.listdir(source_dir), desc="Loading documents"):
         file_path = os.path.join(source_dir, filename)
         if filename.endswith(".txt"):
             with open(file_path, 'r', encoding='utf-8') as file:
-                documents.append(file.read())
+                text = file.read()
+                documents.append((filename, text))
         elif filename.endswith(".pdf"):
             try:
                 pdf_text = extract_text(file_path)
-                documents.append(pdf_text)
+                documents.append((filename, pdf_text))
             except Exception as e:
                 logging.error(f"Failed to extract text from {filename}: {e}")
         else:
@@ -63,40 +67,48 @@ def load_documents(source_dir):
 
 def preprocess_documents(documents):
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000, chunk_overlap=100)
+        chunk_size=250, chunk_overlap=50)
     chunks = []
-    for doc in documents:
-        chunks.extend(splitter.split_text(doc))
+    for filename, doc in tqdm(documents, desc="Splitting documents"):
+        split_texts = splitter.split_text(doc)
+        for text in split_texts:
+            chunks.append((filename, text))
     return chunks
 
 
 def generate_dense_embeddings(chunks):
     embeddings_model = OpenAIEmbeddings(
         openai_api_key=OPENAI_API_KEY, model="text-embedding-ada-002")
-    embeddings = embeddings_model.embed_documents(chunks)
-    return embeddings
 
+    embeddings = []
+    batch_size = 10  # Adjust the batch size for optimal performance
+    for i in tqdm(range(0, len(chunks), batch_size), desc="Generating embeddings"):
+        batch_chunks = [chunk[1]
+                        for chunk in chunks[i:i + batch_size]]  # Extract text part
+        batch_embeddings = embeddings_model.embed_documents(batch_chunks)
+        embeddings.extend(batch_embeddings)
 
-def generate_sparse_embeddings(corpus):
-    from langchain.embeddings import BM25Embeddings
-    bm25_model = BM25Embeddings(corpus)
-    embeddings = bm25_model.embed(corpus)
     return embeddings
 
 
 def insert_embeddings(embeddings, chunks):
     collection = create_collection()
     ids = [str(uuid.uuid4()) for _ in range(len(embeddings))]
+    filenames = [chunk[0] for chunk in chunks]  # Extract filename part
 
     # Prepare the data in the correct format
     data_to_insert = [
         ids,          # List of unique IDs
         embeddings,   # List of embedding vectors
-        chunks        # Corresponding chunks of text
+        [chunk[1] for chunk in chunks],  # Corresponding chunks of text
+        filenames  # Corresponding filenames
     ]
 
     # Insert data into the collection
-    collection.insert(data=data_to_insert)
+    logging.info("Inserting data into Milvus collection...")
+    for i in tqdm(range(0, len(embeddings), 100), desc="Inserting batches"):
+        batch_data = [data[i:i + 100] for data in data_to_insert]
+        collection.insert(data=batch_data)
     collection.flush()
 
     # Create an index on the 'embedding' field
@@ -119,7 +131,7 @@ def main(sparse):
 
     if sparse:
         logging.info("Using BM25 sparse embeddings...")
-        embeddings = generate_sparse_embeddings(chunks)
+        # embeddings = generate_sparse_embeddings(chunks)
     else:
         logging.info("Using OpenAI dense embeddings...")
         embeddings = generate_dense_embeddings(chunks)

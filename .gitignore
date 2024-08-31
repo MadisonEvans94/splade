@@ -1,5 +1,5 @@
 venv/
 .env
-volumes/
+./volumes/
 __pycache__/
 volumes
