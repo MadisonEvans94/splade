@@ -1,5 +1,7 @@
 import os
+import uuid
 import click
+import logging
 from dotenv import load_dotenv
 from langchain_openai import OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -8,6 +10,10 @@ from constants import CONNECTION_ARGS, COLLECTION_NAME, VECTOR_DIM
 
 # Load environment variables from .env file
 load_dotenv()
+
+# Configure logging
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Retrieve the OpenAI API key from environment variables
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -24,22 +30,23 @@ def connect_to_milvus():
 def create_collection():
     connect_to_milvus()
     if not utility.has_collection(COLLECTION_NAME):
-        print(
+        logging.info(
             f"Collection '{COLLECTION_NAME}' does not exist. Creating collection...")
         # Define schema for the collection
         fields = [
-            FieldSchema(name="id", dtype=DataType.INT64,
-                        is_primary=True, auto_id=True),
+            # Changed to VARCHAR for unique IDs
+            FieldSchema(name="id", dtype=DataType.VARCHAR,
+                        max_length=36, is_primary=True),
             FieldSchema(name="embedding",
                         dtype=DataType.FLOAT_VECTOR, dim=VECTOR_DIM)
         ]
         schema = CollectionSchema(
             fields, description="QA Embeddings collection")
         collection = Collection(name=COLLECTION_NAME, schema=schema)
-        print(f"Collection '{COLLECTION_NAME}' created.")
+        logging.info(f"Collection '{COLLECTION_NAME}' created.")
     else:
         collection = Collection(COLLECTION_NAME)
-        print(f"Collection '{COLLECTION_NAME}' already exists.")
+        logging.info(f"Collection '{COLLECTION_NAME}' already exists.")
     return collection
 
 # Load text files from the source directory
@@ -87,17 +94,18 @@ def generate_sparse_embeddings(corpus):
 # Insert embeddings into Milvus
 
 
-# Insert embeddings into Milvus
 def insert_embeddings(embeddings):
     collection = create_collection()  # Ensure collection exists or create it
 
+    # Generate unique IDs for each embedding
+    ids = [str(uuid.uuid4()) for _ in range(len(embeddings))]
+
     # Prepare the data in the correct format
-    entities = [{"embedding": embedding}
-                for embedding in embeddings]  # Align data with schema
+    entities = [ids, embeddings]  # Align data with schema (IDs and embeddings)
 
     # Insert into the collection
     collection.insert(entities)
-    print(
+    logging.info(
         f"Inserted {len(embeddings)} embeddings into Milvus collection '{COLLECTION_NAME}'.")
 
 
@@ -109,10 +117,10 @@ def main(sparse):
     chunks = preprocess_documents(documents)
 
     if sparse:
-        print("Using BM25 sparse embeddings...")
+        logging.info("Using BM25 sparse embeddings...")
         embeddings = generate_sparse_embeddings(chunks)
     else:
-        print("Using OpenAI dense embeddings...")
+        logging.info("Using OpenAI dense embeddings...")
         embeddings = generate_dense_embeddings(chunks)
 
     insert_embeddings(embeddings)
