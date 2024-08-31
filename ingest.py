@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from langchain_openai import OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from pymilvus import connections, Collection, FieldSchema, CollectionSchema, DataType, utility
+from pdfminer.high_level import extract_text  # Import from pdfminer.six
 from constants import CONNECTION_ARGS, COLLECTION_NAME, VECTOR_DIM
 
 # Load environment variables from .env file
@@ -55,9 +56,19 @@ def create_collection():
 def load_documents(source_dir):
     documents = []
     for filename in os.listdir(source_dir):
+        file_path = os.path.join(source_dir, filename)
         if filename.endswith(".txt"):
-            with open(os.path.join(source_dir, filename), 'r', encoding='utf-8') as file:
+            with open(file_path, 'r', encoding='utf-8') as file:
                 documents.append(file.read())
+        elif filename.endswith(".pdf"):
+            try:
+                # Use pdfminer to extract text
+                pdf_text = extract_text(file_path)
+                documents.append(pdf_text)
+            except Exception as e:
+                logging.error(f"Failed to extract text from {filename}: {e}")
+        else:
+            logging.warning(f"Unsupported file type: {filename}, skipping...")
     return documents
 
 # Preprocess documents using LangChain's RecursiveCharacterTextSplitter
@@ -95,16 +106,19 @@ def generate_sparse_embeddings(corpus):
 
 
 def insert_embeddings(embeddings):
-    collection = create_collection()  # Ensure collection exists or create it
+    collection = create_collection()  # Ensure the collection exists or create it
 
     # Generate unique IDs for each embedding
     ids = [str(uuid.uuid4()) for _ in range(len(embeddings))]
 
-    # Prepare the data in the correct format
-    entities = [ids, embeddings]  # Align data with schema (IDs and embeddings)
+    # Prepare field names and data in the correct format
+    data_to_insert = [
+        ids,  # List of IDs
+        embeddings,  # List of embeddings
+    ]
 
-    # Insert into the collection
-    collection.insert(entities)
+    # Insert into the collection using the specified field names
+    collection.insert(data_to_insert)
     logging.info(
         f"Inserted {len(embeddings)} embeddings into Milvus collection '{COLLECTION_NAME}'.")
 

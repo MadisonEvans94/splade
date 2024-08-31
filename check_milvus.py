@@ -19,9 +19,13 @@ def check_collections():
     for name in collection_names:
         collection = Collection(name)
         schema = collection.schema.to_dict()
-        print(f"Collection Name: {name}")
-        print("Schema:")
+        # This should correctly show the number of entities
+        num_entities = collection.num_entities
+
+        print(f"\nCollection Name: {name}")
+        print("\nSchema:\n")
         pprint(schema)
+        print(f"\nNumber of Entities: {num_entities}")
         print("-" * 50)
 
 
