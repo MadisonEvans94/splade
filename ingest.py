@@ -12,6 +12,9 @@ from constants import CONNECTION_ARGS, COLLECTION_NAME, VECTOR_DIM
 from pymilvus.model.sparse.bm25.tokenizers import build_default_analyzer
 from pymilvus.model.sparse import BM25EmbeddingFunction
 import nltk
+
+import pickle
+
 nltk.download('punkt_tab')
 
 load_dotenv()
@@ -34,9 +37,9 @@ def create_collection(collection_name, is_sparse=False):
 
         # Define fields for dense and sparse collections
         dense_fields = [
-            FieldSchema(name="id", dtype=DataType.VARCHAR,
+            FieldSchema(name="pk", dtype=DataType.VARCHAR,
                         max_length=36, is_primary=True),
-            FieldSchema(name="embedding",
+            FieldSchema(name="vector",
                         dtype=DataType.FLOAT_VECTOR,
                         dim=VECTOR_DIM),
             FieldSchema(name="text", dtype=DataType.VARCHAR, max_length=8192),
@@ -45,9 +48,9 @@ def create_collection(collection_name, is_sparse=False):
         ]
 
         sparse_fields = [
-            FieldSchema(name="id", dtype=DataType.VARCHAR,
+            FieldSchema(name="pk", dtype=DataType.VARCHAR,
                         max_length=36, is_primary=True),
-            FieldSchema(name="embedding",
+            FieldSchema(name="vector",
                         dtype=DataType.SPARSE_FLOAT_VECTOR),  # Provide a valid dimension
             FieldSchema(name="text", dtype=DataType.VARCHAR, max_length=8192),
             FieldSchema(name="filename", dtype=DataType.VARCHAR,
@@ -98,19 +101,19 @@ def preprocess_documents(documents):
 
 
 def generate_dense_embeddings(chunks):
-    embeddings_model = OpenAIEmbeddings(
-        openai_api_key=OPENAI_API_KEY, model="text-embedding-ada-002")
-
-    embeddings = []
-    batch_size = 10  # Adjust the batch size for optimal performance
-    for i in tqdm(range(0, len(chunks), batch_size), desc="Generating embeddings"):
-        batch_chunks = [chunk[1]
-                        for chunk in chunks[i:i + batch_size]]  # Extract text part
-        batch_embeddings = embeddings_model.embed_documents(batch_chunks)
-        embeddings.extend(batch_embeddings)
-
+    try:
+        embeddings_model = OpenAIEmbeddings(
+            openai_api_key=OPENAI_API_KEY, model="text-embedding-ada-002")
+        embeddings = []
+        batch_size = 10
+        for i in tqdm(range(0, len(chunks), batch_size), desc="Generating embeddings"):
+            batch_chunks = [chunk[1] for chunk in chunks[i:i + batch_size]]
+            batch_embeddings = embeddings_model.embed_documents(batch_chunks)
+            embeddings.extend(batch_embeddings)
+    except Exception as e:
+        logging.error(f"Error generating dense embeddings: {e}")
+        raise e
     return embeddings
-
 
 def generate_sparse_embeddings(chunks):
     analyzer = build_default_analyzer(language="en")
@@ -119,9 +122,13 @@ def generate_sparse_embeddings(chunks):
     # Fit the model on the corpus to get the statistics of the corpus
     corpus = [chunk[1] for chunk in chunks]
     embeddings_model.fit(corpus)
-
+    # Save the BM25 model after generating embeddings
+    with open('bm25_model.pkl', 'wb') as f:
+        pickle.dump(embeddings_model, f)
+        
     # Create embeddings for the documents
     embeddings = embeddings_model.encode_documents(corpus)
+
     return embeddings
 
 
@@ -164,7 +171,7 @@ def insert_embeddings(embeddings, chunks, collection_name):
             "params": {"nlist": 128}
         }
 
-    collection.create_index(field_name="embedding", index_params=index_params)
+    collection.create_index(field_name="vector", index_params=index_params)
     logging.info(
         f"Index created on field 'embedding' for collection '{collection_name}'.")
 

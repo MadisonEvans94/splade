@@ -4,22 +4,25 @@ import logging
 from dotenv import load_dotenv
 from pymilvus import connections, Collection
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from langchain_community.vectorstores import Milvus
+from langchain_milvus import Milvus
 from langchain.chains import RetrievalQA
-from langchain.prompts import PromptTemplate  # Import PromptTemplate
+from langchain.prompts import PromptTemplate
 from constants import CONNECTION_ARGS, COLLECTION_NAME
 from langchain_core.documents.base import Document
+import pickle
+
+# Load the BM25 model
+with open('bm25_model.pkl', 'rb') as f:
+    bm25_model = pickle.load(f)
 
 # Set hyperparameters
-TOP_K = 5  # Number of top documents to retrieve
+TOP_K = 5
 
 # Load environment variables
 load_dotenv()
 
-# Initialize OpenAI API key
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-# Configure logging
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -32,26 +35,15 @@ def connect_to_milvus():
         logging.error(f"Error connecting to Milvus: {e}")
 
 
-def load_documents(source_dir="./SOURCE_DOCUMENTS"):
-    documents = []
-    for filename in os.listdir(source_dir):
-        if filename.endswith(".txt"):
-            with open(os.path.join(source_dir, filename), 'r', encoding='utf-8') as file:
-                content = file.read()
-                doc_id = str(uuid.uuid4())
-                doc = Document(page_content=content, metadata={
-                               "filename": filename, "id": doc_id})
-                documents.append(doc)
-    return documents
-
-
 def setup_custom_rag_chain():
     connect_to_milvus()
 
     try:
-        collection = Collection(COLLECTION_NAME)
+        # Access existing collections
+        dense_collection = Collection(COLLECTION_NAME)
+        sparse_collection = Collection(f"{COLLECTION_NAME}_SPARSE")
     except Exception as e:
-        logging.error(f"Error initializing collection: {e}")
+        logging.error(f"Error accessing collections: {e}")
         return None
 
     try:
@@ -61,40 +53,36 @@ def setup_custom_rag_chain():
         logging.error(f"Error initializing OpenAI embeddings: {e}")
         return None
 
-    documents = load_documents()
-
+    # Set up dense vector store using LangChain
     try:
-        vector_store = Milvus.from_documents(
-            documents=documents,
-            embedding=embeddings,
-            connection_args=CONNECTION_ARGS
+        dense_vector_store = Milvus(
+            embedding_function=embeddings,
+            connection_args=CONNECTION_ARGS,
+            collection_name=COLLECTION_NAME,
+            index_params={
+                "index_type": "IVF_FLAT",  # or your preferred index type
+                "metric_type": "L2",  # distance metric for dense vectors
+                "params": {"nlist": 128}
+            }
         )
+
     except Exception as e:
-        logging.error(f"Error setting up Milvus vector store: {e}")
+        logging.error(f"Error setting up dense Milvus vector store: {e}")
         return None
 
     try:
-            # Use GPT-4 model
         llm = ChatOpenAI(api_key=OPENAI_API_KEY, model="gpt-4", temperature=0)
-
-
     except Exception as e:
         logging.error(f"Error initializing ChatOpenAI LLM: {e}")
         return None
 
     try:
-        # Configure retriever to always return top k closest documents
-        retriever = vector_store.as_retriever(
-            search_type="similarity",
-            search_kwargs={
-                "k": TOP_K  # Ensure that TOP_K is set to the number of documents you want
-            }
-        )
+        dense_retriever = dense_vector_store.as_retriever(
+            search_type="similarity", search_kwargs={"k": TOP_K})
     except Exception as e:
-        logging.error(f"Error configuring retriever: {e}")
+        logging.error(f"Error configuring dense retriever: {e}")
         return None
 
-    # Define the prompt template to instruct the model
     prompt_template = PromptTemplate(
         template="""
         You are a helpful assistant. Answer the question based solely on the provided context. 
@@ -114,23 +102,22 @@ def setup_custom_rag_chain():
     try:
         custom_chain = RetrievalQA.from_chain_type(
             llm=llm,
-            retriever=retriever,
+            retriever=dense_retriever,  # Pass the dense retriever directly, not as a list
             chain_type="stuff",
             return_source_documents=True,
-            # Apply prompt template
             chain_type_kwargs={"prompt": prompt_template}
         )
     except Exception as e:
         logging.error(f"Error creating custom RAG chain: {e}")
         return None
 
-    return custom_chain
+    return custom_chain, sparse_collection  # Return sparse collection
 
 
 def main():
     logging.info("Starting the chatbot...")
     print("Welcome to the Chatbot! Type 'exit' to end the conversation.")
-    rag_chain = setup_custom_rag_chain()
+    rag_chain, sparse_collection = setup_custom_rag_chain()
 
     while True:
         user_input = input("You: ")
@@ -140,28 +127,43 @@ def main():
             print("Goodbye!")
             break
         print("\n--------------------------\n")
+
+        # Use the BM25 model to encode the user input
+        try:
+            sparse_results = sparse_collection.search(
+                # Encode the query with BM25
+                data=bm25_model.encode_queries([user_input]),
+                anns_field="vector",
+                param={"metric_type": "IP", "params": {"nprobe": 10}},
+                limit=TOP_K
+            )
+        except Exception as e:
+            logging.error(f"Error performing sparse retrieval: {e}")
+            sparse_results = None
+
         try:
             response = rag_chain.invoke({"query": user_input})
         except Exception as e:
             logging.error(f"Error generating response: {e}")
             continue
 
-        # Check if there are source documents retrieved
         if response and 'source_documents' in response and response['source_documents']:
             print(f"\n\nBot: \n{response['result']}\n")
-
             print("\nRetrieved Documents:\n")
             count = 0
             for doc in response['source_documents']:
                 count += 1
-                # Retrieve filename from metadata
                 filename = doc.metadata.get("filename", "Unknown")
                 print(f"{count}. {filename}")
             print("\n--------------------------\n")
         else:
-            # No relevant documents found
             print("Bot: I don't know. No relevant documents were retrieved.")
             logging.warning("No source documents retrieved.")
+
+        if sparse_results:
+            print("\nSparse Retrieval Results:")
+            for res in sparse_results:
+                print(res)
 
 
 if __name__ == "__main__":
