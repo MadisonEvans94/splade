@@ -31,15 +31,32 @@ def create_collection(collection_name, is_sparse=False):
     if not utility.has_collection(collection_name):
         logging.info(
             f"Collection '{collection_name}' does not exist. Creating collection...")
-        fields = [
+
+        # Define fields for dense and sparse collections
+        dense_fields = [
             FieldSchema(name="id", dtype=DataType.VARCHAR,
                         max_length=36, is_primary=True),
             FieldSchema(name="embedding",
-                        dtype=DataType.FLOAT_VECTOR if not is_sparse else DataType.SPARSE_FLOAT_VECTOR),
+                        dtype=DataType.FLOAT_VECTOR,
+                        dim=VECTOR_DIM),
             FieldSchema(name="text", dtype=DataType.VARCHAR, max_length=8192),
             FieldSchema(name="filename", dtype=DataType.VARCHAR,
                         max_length=256)  # Add filename field
         ]
+
+        sparse_fields = [
+            FieldSchema(name="id", dtype=DataType.VARCHAR,
+                        max_length=36, is_primary=True),
+            FieldSchema(name="embedding",
+                        dtype=DataType.SPARSE_FLOAT_VECTOR),  # Provide a valid dimension
+            FieldSchema(name="text", dtype=DataType.VARCHAR, max_length=8192),
+            FieldSchema(name="filename", dtype=DataType.VARCHAR,
+                        max_length=256)  # Add filename field
+        ]
+
+        # Choose the appropriate fields based on the is_sparse flag
+        fields = sparse_fields if is_sparse else dense_fields
+
         schema = CollectionSchema(
             fields, description="QA Embeddings collection")
         collection = Collection(name=collection_name, schema=schema)
