@@ -91,7 +91,7 @@ def load_documents(source_dir):
 
 def preprocess_documents(documents):
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=250, chunk_overlap=50)
+        chunk_size=1000, chunk_overlap=100)
     chunks = []
     for filename, doc in tqdm(documents, desc="Splitting documents"):
         split_texts = splitter.split_text(doc)
