@@ -1,128 +1,99 @@
+import os
+import pickle
 import logging
-from pymilvus import connections, Collection
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import PromptTemplate
+from langchain_core.runnables import RunnablePassthrough
+from langchain_milvus.retrievers import MilvusCollectionHybridSearchRetriever
+from langchain_milvus.utils.sparse import BM25SparseEmbedding
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from langchain_milvus import Milvus
-from langchain.chains import RetrievalQA
-from langchain.prompts import PromptTemplate
-from constants import CONNECTION_ARGS, COLLECTION_NAME
-from typing import Optional, Tuple
+from pymilvus import (
+    Collection,
+    CollectionSchema,
+    DataType,
+    FieldSchema,
+    WeightedRanker,
+    connections,
+)
+from constants import COLLECTION_NAME, CONNECTION_ARGS
 
-# Constants
-DENSE_COLLECTION_NAME = COLLECTION_NAME
-SPARSE_COLLECTION_NAME = f"{COLLECTION_NAME}_SPARSE"
-EMBEDDING_MODEL = "text-embedding-ada-002"
-LLM_MODEL = "gpt-4"
-INDEX_PARAMS = {
-    "index_type": "IVF_FLAT",
-    "metric_type": "L2",
-    "params": {"nlist": 128}
-}
+# Configure logging
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+
+
+connections.connect(**CONNECTION_ARGS)
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+with open('bm25_embeddings.pkl', 'rb') as f:
+    sparse_embeddings: BM25SparseEmbedding = pickle.load(f)
+
+dense_embeddings = OpenAIEmbeddings(
+    openai_api_key=OPENAI_API_KEY, model="text-embedding-ada-002"
+)
+
+# Define fields
+pk_field = "pk"
+dense_field = "dense_vector"
+sparse_field = "sparse_vector"
+text_field = "text"
+
+collection = Collection(COLLECTION_NAME)
+
+# Define search parameters
+sparse_search_params = {"metric_type": "IP"}
+dense_search_params = {"metric_type": "IP", "params": {}}
+
+retriever = MilvusCollectionHybridSearchRetriever(
+    collection=collection,
+    rerank=WeightedRanker(0.5, 0.5),
+    anns_fields=[dense_field, sparse_field],
+    # Ensure sparse and dense are correctly assigned
+    field_embeddings=[dense_embeddings, sparse_embeddings],
+    field_search_params=[dense_search_params, sparse_search_params],
+    top_k=3,
+    text_field=text_field,
+)
+
 PROMPT_TEMPLATE = """
-You are a helpful assistant. Answer the question based solely on the provided context. 
-If the context does not provide enough information, respond with "I don't know."
+Human: You are an AI assistant, and provides answers to questions by using fact based and statistical information when possible.
+Use the following pieces of information to provide a concise answer to the question enclosed in <question> tags.
 
-Context:
+<context>
 {context}
+</context>
 
-Question:
+<question>
 {question}
+</question>
 
-Answer:
-"""
+Assistant:"""
+
+prompt = PromptTemplate(
+    template=PROMPT_TEMPLATE, input_variables=["context", "question"]
+)
 
 
-def connect_to_milvus() -> None:
+def format_docs(docs):
+    return "\n\n".join(doc.page_content for doc in docs)
+
+
+llm = ChatOpenAI(openai_api_key=OPENAI_API_KEY, model="gpt-3.5-turbo")
+
+rag_chain = (
+    {"context": retriever | format_docs, "question": RunnablePassthrough()}
+    | prompt
+    | llm
+    | StrOutputParser()
+)
+
+def main():
     try:
-        connections.connect(**CONNECTION_ARGS)
-        logging.info("Connected to Milvus successfully.")
+        print(rag_chain.invoke(
+            "What is one of the key components of a hematology panel"))
     except Exception as e:
-        logging.error(f"Error connecting to Milvus: {e}")
+        logging.error(f"Error during retrieval: {e}")
 
 
-def get_collection(name: str) -> Optional[Collection]:
-    try:
-        return Collection(name)
-    except Exception as e:
-        logging.error(f"Error accessing collection {name}: {e}")
-        return None
-
-
-def get_embeddings(api_key: str) -> Optional[OpenAIEmbeddings]:
-    try:
-        return OpenAIEmbeddings(openai_api_key=api_key, model=EMBEDDING_MODEL)
-    except Exception as e:
-        logging.error(f"Error initializing OpenAI embeddings: {e}")
-        return None
-
-
-def get_dense_vector_store(embeddings: OpenAIEmbeddings) -> Optional[Milvus]:
-    try:
-        return Milvus(
-            embedding_function=embeddings,
-            connection_args=CONNECTION_ARGS,
-            collection_name=DENSE_COLLECTION_NAME,
-            index_params=INDEX_PARAMS
-        )
-    except Exception as e:
-        logging.error(f"Error setting up dense Milvus vector store: {e}")
-        return None
-
-
-def get_llm(api_key: str) -> Optional[ChatOpenAI]:
-    try:
-        return ChatOpenAI(api_key=api_key, model=LLM_MODEL, temperature=0)
-    except Exception as e:
-        logging.error(f"Error initializing ChatOpenAI LLM: {e}")
-        return None
-
-
-def get_dense_retriever(vector_store: Milvus, top_k: int) -> Optional[Milvus]:
-    try:
-        return vector_store.as_retriever(search_type="similarity", search_kwargs={"k": top_k})
-    except Exception as e:
-        logging.error(f"Error configuring dense retriever: {e}")
-        return None
-
-
-def setup_custom_rag_chain(openai_api_key: str, top_k: int) -> Optional[Tuple[RetrievalQA, Collection]]:
-    connect_to_milvus()
-
-    dense_collection = get_collection(DENSE_COLLECTION_NAME)
-    sparse_collection = get_collection(SPARSE_COLLECTION_NAME)
-    if not dense_collection or not sparse_collection:
-        return None
-
-    embeddings = get_embeddings(openai_api_key)
-    if not embeddings:
-        return None
-
-    dense_vector_store = get_dense_vector_store(embeddings)
-    if not dense_vector_store:
-        return None
-
-    llm = get_llm(openai_api_key)
-    if not llm:
-        return None
-
-    dense_retriever = get_dense_retriever(dense_vector_store, top_k)
-    if not dense_retriever:
-        return None
-
-    prompt_template = PromptTemplate(
-        template=PROMPT_TEMPLATE,
-        input_variables=["context", "question"]
-    )
-
-    try:
-        custom_chain = RetrievalQA.from_chain_type(
-            llm=llm,
-            retriever=dense_retriever,
-            chain_type="stuff",
-            return_source_documents=True,
-            chain_type_kwargs={"prompt": prompt_template}
-        )
-    except Exception as e:
-        logging.error(f"Error creating custom RAG chain: {e}")
-        return None
-
-    return custom_chain, sparse_collection
+if __name__ == "__main__":
+    main()
