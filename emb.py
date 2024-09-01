@@ -73,6 +73,7 @@ collection.flush()
 
 # Insert entities into the collection and load the collection
 entities = []
+
 for text in texts:
     entity = {
         dense_field: dense_embedding_func.embed_documents([text])[0],
