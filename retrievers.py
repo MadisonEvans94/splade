@@ -69,7 +69,7 @@ class CustomHybridRetriever(BaseRetriever):
     embeddings_model: Embeddings = Field(...)
     sparse_embeddings_model: BaseSparseEmbedding = Field(...)
 
-    def __init__(self, collection: Collection, dense_field: str, sparse_field: str, top_k: int, embeddings_model: Embeddings, sparse_embeddings_model: BaseSparseEmbedding):
+    def __init__(self, collection: Collection, dense_field: str, sparse_field: str, top_k: int, embeddings_model: Embeddings, sparse_embeddings_model: BaseSparseEmbedding, ratio: List[float] = [0.5, 0.5]):
         # Properly initialize fields using pydantic's BaseModel mechanism
         super().__init__(collection=collection, dense_field=dense_field,
                          top_k=top_k, embeddings_model=embeddings_model)
@@ -142,28 +142,23 @@ class CustomHybridRetriever(BaseRetriever):
 
 def setup_chain(hybrid: bool):
     if hybrid:
-        # Hybrid search using both dense and sparse embeddings
-        retriever = MilvusCollectionHybridSearchRetriever(
-            collection=collection,
-            anns_fields=[dense_field, sparse_field],
-            field_embeddings=[dense_embeddings, sparse_embeddings],
-            field_search_params=[dense_search_params, sparse_search_params],
-            rerank=WeightedRanker(0.5, 0.5),
-            text_field=text_field,
-            top_k=TOP_K
-        )
+        ratio = [0.5, 0.5]
         logging.info("Running in hybrid retrieval mode.")
-    else:
-        # Dense-only search using custom retriever
-        retriever = CustomHybridRetriever(
-            collection=collection,
-            dense_field=dense_field,
-            sparse_field=sparse_field,
-            top_k=TOP_K,
-            embeddings_model=dense_embeddings,
-            sparse_embeddings_model=sparse_embeddings
-        )
+    else: 
+        ratio = [1.0, 0.0]
         logging.info("Running in dense-only retrieval mode.")
+    
+    # Dense-only search using custom retriever
+    retriever = CustomHybridRetriever(
+        collection=collection,
+        dense_field=dense_field,
+        sparse_field=sparse_field,
+        top_k=TOP_K,
+        embeddings_model=dense_embeddings,
+        sparse_embeddings_model=sparse_embeddings, 
+        ratio=ratio
+    )
+    
 
     # Define the chain using the configured retriever
     rag_chain_from_docs = (
