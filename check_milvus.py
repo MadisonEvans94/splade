@@ -18,6 +18,8 @@ def check_collections():
 
     for name in collection_names:
         collection = Collection(name)
+        # Ensure the collection is loaded into memory
+        collection.load()
         schema = collection.schema.to_dict()
         # This should correctly show the number of entities
         num_entities = collection.num_entities
