@@ -1,5 +1,5 @@
 import os
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 import uuid
 import click
 import logging
@@ -11,6 +11,7 @@ from pymilvus import connections, Collection, FieldSchema, CollectionSchema, Dat
 from pdfminer.high_level import extract_text
 from constants import CONNECTION_ARGS, COLLECTION_NAME, VECTOR_DIM
 from langchain_milvus.utils.sparse import BM25SparseEmbedding
+from pymilvus import model
 import nltk
 
 import pickle
@@ -23,6 +24,9 @@ logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+splade_ef = model.sparse.SpladeEmbeddingFunction(
+    model_name="naver/splade-cocondenser-ensembledistil", device="cpu")
 
 
 def connect_to_milvus():
@@ -101,13 +105,27 @@ def generate_dense_embeddings(chunks: List[Tuple[str, str]]):
     return embeddings
 
 
+def sparse_to_dict(sparse_array) -> Dict[int, float]:
+    row_indices, col_indices = sparse_array.nonzero()
+    non_zero_values = sparse_array.data
+    result_dict = {}
+    for col_index, value in zip(col_indices, non_zero_values):
+        result_dict[col_index] = value
+    return result_dict
+
+
 def generate_sparse_embeddings(chunks: List[Tuple[str, str]]):
     corpus = [chunk[1] for chunk in chunks]
     sparse_embeddings_func = BM25SparseEmbedding(corpus=corpus)
+
     with open('bm25_embeddings.pkl', 'wb') as f:
         pickle.dump(sparse_embeddings_func, f)
     print(f"\n\n\n{type(sparse_embeddings_func)}\n\n\n")
     sparse_embeddings = sparse_embeddings_func.embed_documents(corpus)
+    # sparse_embeddings = splade_ef.encode_documents(corpus)
+    # sparse_embeddings_formatted = [sparse_to_dict(embedding) for embedding in sparse_embeddings]
+
+    # return sparse_embeddings_formatted
     return sparse_embeddings
 
 
@@ -126,26 +144,16 @@ def insert_embeddings(dense_embeddings, sparse_embeddings, chunks, collection_na
         [chunk[1] for chunk in chunks],  # Corresponding chunks of text
         filenames                   # Corresponding filenames
     ]
+    print(f"DATA TO INSERT: {data_to_insert[0]}")
 
     # Insert data into the collection
-    collection.insert(data_to_insert)
+    output = collection.insert(data_to_insert)
+    print(output)
 
-    # Create indexes on the 'dense_vector' and 'sparse_vector' fields
-    # dense_index_params = {
-    #     "index_name": "dense_index",
-    #     "field_name": "dense_vector",
-    #     "index_type": "IVF_FLAT",
-    #     "metric_type": "L2",
-    #     "params": {"nlist": 128}
-    # }
+    # Flush the collection to ensure data is written
+    collection.flush()
+
     dense_index = {"index_type": "FLAT", "metric_type": "IP"}
-    # sparse_index_params = {
-    #     "index_name": "sparse_index",
-    #     "field_name": "sparse_vector",
-    #     "index_type": "SPARSE_INVERTED_INDEX",
-    #     "metric_type": "IP",
-    #     "params": {"drop_ratio_build": 0.2}
-    # }
     sparse_index = {"index_type": "SPARSE_INVERTED_INDEX", "metric_type": "IP"}
 
     collection.create_index(field_name="dense_vector",
@@ -157,7 +165,6 @@ def insert_embeddings(dense_embeddings, sparse_embeddings, chunks, collection_na
 
     # Load the collection into memory after creating the indexes
     collection.load()
-
 
 @click.command()
 def main():
