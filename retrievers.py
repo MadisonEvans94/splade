@@ -1,13 +1,15 @@
+from pydantic import Field
 import os
 import pickle
 import logging
-from typing import Any
+from typing import Any, List
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnablePassthrough, RunnableParallel
 from langchain_milvus.retrievers import MilvusCollectionHybridSearchRetriever
-from langchain_milvus.utils.sparse import BM25SparseEmbedding
+from langchain_milvus.utils.sparse import BM25SparseEmbedding, BaseSparseEmbedding
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain.embeddings.base import Embeddings
 from pymilvus import (
     Collection,
     WeightedRanker,
@@ -15,8 +17,14 @@ from pymilvus import (
 )
 from langchain_core.runnables.base import RunnableSerializable
 from constants import COLLECTION_NAME, CONNECTION_ARGS
+import click
 
-TOP_K = 5
+from langchain_core.retrievers import BaseRetriever
+from langchain_core.documents import Document
+from langchain_core.callbacks import CallbackManagerForRetrieverRun
+from pymilvus import Collection
+
+TOP_K = 2
 EXIT_COMMAND = 'exit'
 
 # Configure logging
@@ -47,38 +55,125 @@ collection = Collection(COLLECTION_NAME)
 sparse_search_params = {"metric_type": "IP"}
 dense_search_params = {"metric_type": "IP", "params": {}}
 
-# Initialize retriever
-retriever = MilvusCollectionHybridSearchRetriever(
-    collection=collection,
-    rerank=WeightedRanker(0.5, 0.5),
-    anns_fields=[dense_field, sparse_field],
-    field_embeddings=[dense_embeddings, sparse_embeddings],
-    field_search_params=[dense_search_params, sparse_search_params],
-    top_k=3,
-    text_field=text_field,
-)
+# Function to set up the retriever and chains
 
-# Extend the retriever to add retrieval type metadata
+class CustomHybridRetriever(BaseRetriever):
+    """Custom retriever to retrieve documents using both dense and sparse embeddings."""
 
-
-def retrieve_with_metadata(query):
-    dense_results = retriever.invoke(query, method='dense')
-    sparse_results = retriever.invoke(query, method='sparse')
-
-    # Add metadata to each document to indicate retrieval method
-    for doc in dense_results:
-        doc.metadata['retrieval_method'] = 'dense'
-    for doc in sparse_results:
-        doc.metadata['retrieval_method'] = 'sparse'
-
-    # Combine results, maintaining the retrieval method metadata
-    combined_results = dense_results + sparse_results
-    return combined_results
+    collection: Collection = Field(...)
+    dense_field: str = Field(...)
+    sparse_field: str = Field(...)
+    top_k: int = Field(...)
+    embeddings_model: Embeddings = Field(...)
+    sparse_embeddings_model: BaseSparseEmbedding = Field(...)
 
 
+    def __init__(self, collection: Collection, dense_field: str, sparse_field: str, top_k: int, embeddings_model: Embeddings, sparse_embeddings_model: BaseSparseEmbedding):
+        # Properly initialize fields using pydantic's BaseModel mechanism
+        super().__init__(collection=collection, dense_field=dense_field, top_k=top_k, embeddings_model=embeddings_model)
+        self.collection = collection
+        self.dense_field = dense_field
+        self.sparse_field = sparse_field
+        self.top_k = top_k
+        self.embeddings_model = embeddings_model
+        self.sparse_embeddings_model = sparse_embeddings_model
+
+    def _get_relevant_documents(
+            self, query: str, *, run_manager: CallbackManagerForRetrieverRun = None
+        ) -> List[Document]:
+        """Retrieve documents using both dense and sparse embeddings."""
+
+        # Convert the query into dense and sparse embeddings using the embeddings model
+        dense_query_embedding = self.embeddings_model.embed_query(query)
+        sparse_query_embedding = self.sparse_embeddings_model.embed_query(query)
+
+        # Define search parameters
+        sparse_search_params = {"metric_type": "IP"}
+        dense_search_params = {"metric_type": "IP", "params": {}}
+
+        # Perform search using dense embeddings field
+        dense_results = self.collection.search(
+            data=[dense_query_embedding],
+            anns_field=self.dense_field,
+            param=dense_search_params,
+            limit=self.top_k,
+            expr=None,
+            output_fields=["pk", "text"]
+        )
+
+        # Perform search using sparse embeddings field
+        sparse_results = self.collection.search(
+            data=[sparse_query_embedding],
+            anns_field=self.sparse_field,
+            param=sparse_search_params,
+            limit=self.top_k,
+            expr=None,
+            output_fields=["pk", "text"]
+        )
+
+        # Extract the documents from the search results
+        dense_documents = [
+            Document(
+                page_content=hit.get("text"),
+                metadata={"pk": hit.id, "retriever": "dense"}
+            )
+            for hits in dense_results for hit in hits
+        ]
+            
+        sparse_documents = [
+            Document(
+                page_content=hit.get("text"),
+                metadata={"pk": hit.id, "retriever": "sparse"}
+            )
+            for hits in sparse_results for hit in hits
+        ]
+
+        documents = dense_documents + sparse_documents
+
+        return documents
+
+
+def setup_chain(hybrid):
+    if hybrid:
+        # Hybrid search using both dense and sparse embeddings
+        retriever = MilvusCollectionHybridSearchRetriever(
+            collection=collection,
+            anns_fields=[dense_field, sparse_field],
+            field_embeddings=[dense_embeddings, sparse_embeddings],
+            field_search_params=[dense_search_params, sparse_search_params],
+            rerank=WeightedRanker(0.5, 0.5),
+            text_field=text_field,
+            top_k=TOP_K
+        )
+        logging.info("Running in hybrid retrieval mode.")
+    else:
+        # Dense-only search using custom retriever
+        retriever = CustomHybridRetriever(
+            collection=collection,
+            dense_field=dense_field,
+            sparse_field=sparse_field,
+            top_k=TOP_K,
+            embeddings_model=dense_embeddings, 
+            sparse_embeddings_model=sparse_embeddings
+        )
+        logging.info("Running in dense-only retrieval mode.")
+
+    # Define the chain using the configured retriever
+    rag_chain_from_docs = (
+        RunnablePassthrough.assign(
+            context=(lambda x: {"context": format_docs(x["context"]), "sources": x["context"]}))
+        | prompt
+        | llm
+        | StrOutputParser()
+    )
+
+    return RunnableParallel(
+        {"context": retriever.invoke, "question": RunnablePassthrough()}
+    ).assign(answer=rag_chain_from_docs, sources=(lambda x: x["context"]))
+    
 # Define prompt template
 PROMPT_TEMPLATE = """
-Human: You are an AI assistant, and provides answers to questions by using fact based and statistical information when possible.
+Human: You are an AI assistant, and provide answers to questions by using fact-based and statistical information when possible.
 Use the following pieces of information to provide a concise answer to the question enclosed in <question> tags.
 
 <context>
@@ -97,48 +192,28 @@ prompt = PromptTemplate(template=PROMPT_TEMPLATE,
 # Utility function to format documents
 
 
-def format_docs(docs):
-    return "\n\n".join(doc.page_content for doc in docs)
 
 
 # Initialize LLM
 llm = ChatOpenAI(openai_api_key=OPENAI_API_KEY, model="gpt-3.5-turbo")
 
-# Define the Q&A chain with sources
-rag_chain_from_docs = (
-    RunnablePassthrough.assign(context=(lambda x: format_docs(x["context"])))
-    | prompt
-    | llm
-    | StrOutputParser()
-)
-
-rag_chain_with_source = RunnableParallel(
-    {"context": retrieve_with_metadata, "question": RunnablePassthrough()}
-).assign(answer=rag_chain_from_docs)
-
-
 # Define the chatbot loop to include sources in the response
+
+def format_docs(docs):
+    return "\n\n".join(doc.page_content for doc in docs)
 
 
 def format_sources(sources):
-    """
-    Formats the source documents for clearer output.
-
-    Args:
-        sources (list): A list of Document objects retrieved as sources.
-
-    Returns:
-        str: A formatted string representation of the sources.
-    """
+    """Formats the source information for output."""
     formatted_sources = []
     for i, doc in enumerate(sources, start=1):
         metadata = doc.metadata
         source_info = f"Source {i}:"
-        source_info += f"\n- Filename: {metadata.get('filename', 'Unknown')}"
         source_info += f"\n- Document ID: {metadata.get('pk', 'Unknown')}"
-        # Show a preview of the content
-        source_info += f"\n- Content Preview: {doc.page_content[:50]}..."
-        source_info += f"\n- Retrieval Type: {metadata.get('retrieval_method', 'Unknown')}"
+        source_info += "----------------------------------"
+        source_info += f"\n\n{doc.page_content[:200]}...\n\n"
+        source_info += "----------------------------------"
+        source_info += f"\n- Retrieved by: {metadata.get('retriever', 'Unknown')}"
         formatted_sources.append(source_info)
     return "\n\n".join(formatted_sources)
 
@@ -154,22 +229,31 @@ def chatbot_loop(rag_chain: RunnableSerializable[Any, str]):
             break
         print("\n--------------------------\n")
         try:
-            # Pass the user input as the "question" in the dictionary
             response = rag_chain.invoke(user_input)
             print(f"\n\nBot: \n{response['answer']}\n")
-            # Print the sources used in a formatted manner
-            formatted_sources = format_sources(response['context'])
-            print(f"Sources:\n{formatted_sources}\n")
+
+            # Print the sources
+            if 'sources' in response:
+                formatted_sources = format_sources(response['sources'])
+                print(f"Sources:\n{formatted_sources}\n")
         except Exception as e:
             logging.error(f"Error generating response: {e}")
             continue
 
-def main():
+@click.command()
+@click.option('--hybrid', is_flag=True, help="Enable hybrid retrieval mode.")
+def main(hybrid):
+    if hybrid: 
+        logging.info("Running in hybrid retrieval mode.")
+    else:
+        logging.info("Running in dense-only retrieval mode.")
+    rag_chain = setup_chain(hybrid)
     try:
-        chatbot_loop(rag_chain_with_source)
+        chatbot_loop(rag_chain)
     except Exception as e:
         logging.error(f"Error during retrieval: {e}")
 
 
 if __name__ == "__main__":
     main()
+
