@@ -116,17 +116,21 @@ def sparse_to_dict(sparse_array) -> Dict[int, float]:
 
 def generate_sparse_embeddings(chunks: List[Tuple[str, str]]):
     corpus = [chunk[1] for chunk in chunks]
-    sparse_embeddings_func = BM25SparseEmbedding(corpus=corpus)
+    # sparse_embeddings_func = BM25SparseEmbedding(corpus=corpus)
 
-    with open('bm25_embeddings.pkl', 'wb') as f:
-        pickle.dump(sparse_embeddings_func, f)
-    print(f"\n\n\n{type(sparse_embeddings_func)}\n\n\n")
-    sparse_embeddings = sparse_embeddings_func.embed_documents(corpus)
-    # sparse_embeddings = splade_ef.encode_documents(corpus)
-    # sparse_embeddings_formatted = [sparse_to_dict(embedding) for embedding in sparse_embeddings]
+    # with open('bm25_embeddings.pkl', 'wb') as f:
+    #     pickle.dump(sparse_embeddings_func, f)
+    # print(f"\n\n\n{type(sparse_embeddings_func)}\n\n\n")
+    # sparse_embeddings = sparse_embeddings_func.embed_documents(corpus)
+    sparse_embeddings = splade_ef.encode_documents(corpus)
+    sparse_embeddings_formatted = [sparse_to_dict(embedding) for embedding in sparse_embeddings]
+    # Debugging: Print sparse embeddings to verify they are generated correctly
+    # Print first 5 for sanity check
+    logging.info(
+        f"Generated sparse embeddings: {sparse_embeddings_formatted[:5]}")
 
-    # return sparse_embeddings_formatted
-    return sparse_embeddings
+    return sparse_embeddings_formatted
+    # return sparse_embeddings
 
 
 def insert_embeddings(dense_embeddings, sparse_embeddings, chunks, collection_name):

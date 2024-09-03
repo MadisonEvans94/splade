@@ -1,84 +1,66 @@
-from pymilvus import connections, FieldSchema, CollectionSchema, DataType, Collection, utility
-import logging
-
-# Setup logging
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
-
-# Define connection arguments (replace with your actual Milvus host and port)
-CONNECTION_ARGS = {"host": "localhost", "port": "19530"}
-COLLECTION_NAME = "test_collection"
-VECTOR_DIM = 2  # Example dimension for simple testing
-
-
-def connect_to_milvus():
-    """Establish a connection to Milvus."""
-    connections.connect(**CONNECTION_ARGS)
-    logging.info("Connected to Milvus")
-
-
-def create_test_collection(collection_name):
-    """Create a simple collection for testing purposes."""
-    if not utility.has_collection(collection_name):
-        logging.info(
-            f"Collection '{collection_name}' does not exist. Creating collection...")
-
-        # Define fields for the collection
-        fields = [
-            FieldSchema(name="id", dtype=DataType.INT64,
-                        is_primary=True, auto_id=True),
-            FieldSchema(name="vector", dtype=DataType.FLOAT_VECTOR,
-                        dim=VECTOR_DIM),
-            FieldSchema(name="text", dtype=DataType.VARCHAR, max_length=512)
-        ]
-
-        schema = CollectionSchema(
-            fields, description="Test collection for basic troubleshooting")
-        collection = Collection(name=collection_name, schema=schema)
-        logging.info(f"Collection '{collection_name}' created.")
-    else:
-        collection = Collection(collection_name)
-        logging.info(f"Collection '{collection_name}' already exists.")
-
-    return collection
+import pprint
+from typing import Dict
+from pymilvus import (
+    MilvusClient, AnnSearchRequest
+)
+from constants import COLLECTION_NAME
+from pymilvus import model
+from pymilvus import (
+    Collection,
+    connections,
+)
+from constants import CONNECTION_ARGS
+connections.connect(**CONNECTION_ARGS)
+def sparse_to_dict(sparse_array) -> Dict[int, float]:
+    # Convert sparse matrix to dictionary format
+    row_indices, col_indices = sparse_array.nonzero()
+    non_zero_values = sparse_array.data
+    result_dict = {}
+    for col_index, value in zip(col_indices, non_zero_values):
+        result_dict[col_index] = value
+    return result_dict
 
 
-def insert_test_data(collection):
-    """Insert test data into the collection."""
-    test_vectors = [[0.1, 0.2], [0.3, 0.4], [0.5, 0.6]]  # Example vector data
-    test_texts = ["test1", "test2", "test3"]  # Example strings
+collection = Collection(COLLECTION_NAME)
 
-    # Prepare the data to match the schema (omit IDs since they are auto-generated)
-    data_to_insert = [
-        test_vectors,  # Vectors to insert
-        test_texts     # Corresponding text
-    ]
-
-    logging.info("Inserting test data into collection...")
-    collection.insert(data_to_insert)
-    logging.info("Data insertion completed.")
+# Initialize the sparse embedding function
+sparse_ef = model.sparse.SpladeEmbeddingFunction(
+    model_name="naver/splade-cocondenser-selfdistil",
+    device="cpu",
+)
 
 
-def create_index(collection):
-    """Create an index for the vector field."""
-    index_params = {"index_type": "FLAT", "metric_type": "L2", "params": {}}
-    collection.create_index(field_name="vector", index_params=index_params)
-    logging.info("Index created on the 'vector' field.")
+# Connect to Milvus
+milvus_client = MilvusClient("http://localhost:19530")
 
+# Generate sparse embedding for the query
+query = "What is Polyuria?"
 
-def main():
-    connect_to_milvus()
-    collection = create_test_collection(COLLECTION_NAME)
+# Generate sparse embedding for the query
+query_sparse_emb = sparse_ef([query])
 
-    try:
-        insert_test_data(collection)
-        create_index(collection)
-    except Exception as e:
-        logging.error(f"Error during data insertion or indexing: {e}")
+# Convert sparse embedding to dictionary format
+sparse_dict = sparse_to_dict(query_sparse_emb)
 
-    logging.info(
-        f"Number of entities in collection '{COLLECTION_NAME}': {collection.num_entities}")
+# # Create the AnnSearchRequest with the sparse embedding in dictionary format
+sparse_search_request = AnnSearchRequest(
+    data=[sparse_dict],  # The dictionary format for sparse embedding
+    anns_field="sparse_vector",  # Specify the field for sparse vectors in Milvus
+    param={"metric_type": "IP"},  # Use Inner Product as the metric type
+    limit=3  # Limit to 3 results
+)
 
+# Perform the search using the AnnSearchRequest
+sparse_results = collection.search(
+    anns_field="sparse_vector",
+    # Use the converted sparse dictionary here directly
+    data=[sparse_search_request.data[0]],
+    param={"metric_type": "IP"},
+    limit=2,
+    output_fields=['pk', 'text']  # Specify output fields to return
+)
 
-if __name__ == "__main__":
-    main()
+# Print the results
+print(f'Sparse Search Results:')
+for result in sparse_results[0]:
+    print(result)

@@ -53,7 +53,6 @@ dense_search_params = {"metric_type": "IP", "params": {}}
 
 def setup_chain(hybrid: bool):
     if hybrid:
-        ratio = [0.5, 0.5]
         logging.info("Running in hybrid retrieval mode.")
         # Use the custom hybrid retriever
         retriever = CustomHybridRetriever(
@@ -63,7 +62,6 @@ def setup_chain(hybrid: bool):
             top_k=TOP_K,
             embeddings_model=dense_embeddings,
             sparse_embeddings_model=sparse_embeddings,
-            ratio=ratio
         )
     else:
         logging.info("Running in dense-only retrieval mode.")
