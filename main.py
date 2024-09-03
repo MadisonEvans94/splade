@@ -4,18 +4,16 @@ import logging
 from typing import Any
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
-from langchain_core.runnables import RunnablePassthrough, RunnableParallel
 from langchain_milvus.utils.sparse import BM25SparseEmbedding
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from pymilvus import (
     Collection,
     connections,
 )
-from langchain_core.runnables.base import RunnableSerializable
 from constants import COLLECTION_NAME, CONNECTION_ARGS
 import click
-from pymilvus import Collection
 from retrievers import CustomHybridRetriever, StandardRetriever
+from langchain.chains import RetrievalQA
 
 TOP_K = 2
 EXIT_COMMAND = 'exit'
@@ -44,11 +42,28 @@ sparse_field = "sparse_vector"
 text_field = "text"
 collection = Collection(COLLECTION_NAME)
 
-# Define search parameters
-sparse_search_params = {"metric_type": "IP"}
-dense_search_params = {"metric_type": "IP", "params": {}}
+# Define prompt template
+PROMPT_TEMPLATE = """
+Human: You are an AI assistant, and provide answers to questions by using fact-based and statistical information when possible.
+Use the following pieces of information to provide a concise answer to the question enclosed in <question> tags.
 
-# Function to set up the retriever and chains
+<context>
+{context}
+</context>
+
+<question>
+{question}
+</question>
+
+Assistant:"""
+
+prompt = PromptTemplate(template=PROMPT_TEMPLATE,
+                        input_variables=["context", "question"])
+
+# Initialize LLM
+llm = ChatOpenAI(openai_api_key=OPENAI_API_KEY, model="gpt-3.5-turbo")
+
+# Function to set up the retriever and RetrievalQA chain
 
 
 def setup_chain(hybrid: bool):
@@ -73,48 +88,14 @@ def setup_chain(hybrid: bool):
             embeddings_model=dense_embeddings
         )
 
-    # Define the chain using the configured retriever
-    rag_chain_from_docs = (
-        RunnablePassthrough.assign(
-            context=(lambda x: {"context": format_docs(x["context"]), "sources": x["context"]}))
-        | prompt
-        | llm
-        | StrOutputParser()
+    # Create the RetrievalQA chain
+    qa_chain = RetrievalQA.from_llm(
+        llm=llm,
+        retriever=retriever,
+        return_source_documents=True
     )
 
-    # Adjust the final output to include source document information
-    return RunnableParallel(
-        {
-            "context": retriever.invoke,
-            "question": RunnablePassthrough()
-        }
-    ).assign(
-        answer=rag_chain_from_docs,
-        # Include source documents in the output
-        sources=(lambda x: x["context"])
-    )
-
-
-# Define prompt template
-PROMPT_TEMPLATE = """
-Human: You are an AI assistant, and provide answers to questions by using fact-based and statistical information when possible.
-Use the following pieces of information to provide a concise answer to the question enclosed in <question> tags.
-
-<context>
-{context}
-</context>
-
-<question>
-{question}
-</question>
-
-Assistant:"""
-
-prompt = PromptTemplate(template=PROMPT_TEMPLATE,
-                        input_variables=["context", "question"])
-
-# Initialize LLM
-llm = ChatOpenAI(openai_api_key=OPENAI_API_KEY, model="gpt-3.5-turbo")
+    return qa_chain
 
 # Define the chatbot loop to include sources in the response
 
@@ -138,7 +119,7 @@ def format_sources(sources):
     return "\n\n".join(formatted_sources)
 
 
-def chatbot_loop(rag_chain: RunnableSerializable[Any, str]):
+def chatbot_loop(qa_chain: RetrievalQA):
     print("Welcome to the Chatbot! Type 'exit' to end the conversation.\n")
 
     while True:
@@ -149,13 +130,13 @@ def chatbot_loop(rag_chain: RunnableSerializable[Any, str]):
             break
         print("\n--------------------------\n")
         try:
-            response = rag_chain.invoke(user_input)
-            print(f"\n\nBot: \n{response['answer']}\n")
-
-            # Print the sources
-            # if 'sources' in response:
-            #     formatted_sources = format_sources(response['sources'])
-            #     print(f"Sources:\n{formatted_sources}\n")
+            # Invoke the RetrievalQA to get the answer
+            response = qa_chain.invoke({"query": user_input})
+            print(f"\n\nBot: \n{response['result']}\n")
+            if 'source_documents' in response:
+                formatted_sources = format_sources(
+                    response['source_documents'])
+                print(f"Sources:\n{formatted_sources}\n")
         except Exception as e:
             logging.error(f"Error generating response: {e}")
             continue
@@ -164,9 +145,9 @@ def chatbot_loop(rag_chain: RunnableSerializable[Any, str]):
 @click.command()
 @click.option('--hybrid', is_flag=True, help="Enable hybrid retrieval mode.")
 def main(hybrid):
-    rag_chain = setup_chain(hybrid)
+    qa_chain = setup_chain(hybrid)
     try:
-        chatbot_loop(rag_chain)
+        chatbot_loop(qa_chain)
     except Exception as e:
         logging.error(f"Error during retrieval: {e}")
 
