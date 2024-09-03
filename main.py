@@ -153,9 +153,9 @@ def chatbot_loop(rag_chain: RunnableSerializable[Any, str]):
             print(f"\n\nBot: \n{response['answer']}\n")
 
             # Print the sources
-            if 'sources' in response:
-                formatted_sources = format_sources(response['sources'])
-                print(f"Sources:\n{formatted_sources}\n")
+            # if 'sources' in response:
+            #     formatted_sources = format_sources(response['sources'])
+            #     print(f"Sources:\n{formatted_sources}\n")
         except Exception as e:
             logging.error(f"Error generating response: {e}")
             continue
