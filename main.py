@@ -5,6 +5,7 @@ from typing import Any
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain_milvus.utils.sparse import BM25SparseEmbedding
+from retrievers import SpladeSparseEmbedding
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from pymilvus import (
     Collection,
@@ -29,9 +30,9 @@ connections.connect(**CONNECTION_ARGS)
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # Load embeddings
-with open('bm25_embeddings.pkl', 'rb') as f:
-    sparse_embeddings: BM25SparseEmbedding = pickle.load(f)
-
+# with open('bm25_embeddings.pkl', 'rb') as f:
+#     sparse_embeddings: BM25SparseEmbedding = pickle.load(f)
+sparse_embeddings = SpladeSparseEmbedding()
 dense_embeddings = OpenAIEmbeddings(
     openai_api_key=OPENAI_API_KEY, model="text-embedding-ada-002")
 
