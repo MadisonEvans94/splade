@@ -1,5 +1,4 @@
 import os
-import pickle
 import logging
 from typing import Any
 from langchain_core.output_parsers import StrOutputParser
@@ -15,6 +14,7 @@ from pymilvus import (
     WeightedRanker,
     connections,
 )
+from langchain.memory import ConversationBufferWindowMemory
 from constants import COLLECTION_NAME, CONNECTION_ARGS
 import click
 from retrievers import StandardRetriever
@@ -22,6 +22,7 @@ from langchain.chains import RetrievalQA
 
 TOP_K = 2
 EXIT_COMMAND = 'exit'
+CONV_HISTORY_SIZE = 5  # Example size of conversation memory buffer
 
 # Configure logging
 logging.basicConfig(level=logging.INFO,
@@ -33,9 +34,6 @@ connections.connect(**CONNECTION_ARGS)
 # Load environment variables
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-# Load embeddings
-# with open('bm25_embeddings.pkl', 'rb') as f:
-#     sparse_embeddings: BM25SparseEmbedding = pickle.load(f)
 sparse_embedding_func = SpladeSparseEmbedding()
 dense_embedding_func = OpenAIEmbeddings(
     openai_api_key=OPENAI_API_KEY, model="text-embedding-ada-002")
@@ -46,30 +44,37 @@ dense_field = "dense_vector"
 sparse_field = "sparse_vector"
 text_field = "text"
 collection = Collection(COLLECTION_NAME)
+
 # Define search parameters for dense and sparse fields
 dense_search_params = {"metric_type": "IP", "params": {}}
 sparse_search_params = {"metric_type": "IP"}
 
 # Define prompt template
 PROMPT_TEMPLATE = """
-Human: You are an AI assistant, and provide answers to questions by using fact-based and statistical information when possible.
-Use the following pieces of information to provide a concise answer to the question enclosed in <question> tags.
+Use the following pieces of context to answer the question at the end. 
+If you don't know the answer, just say that you don't know, don't try to make up an answer.
 
-<context>
 {context}
-</context>
 
-<question>
-{question}
-</question>
+{history}
+Question: {question}
+Answer:
+"""
 
-Assistant:"""
-
-prompt = PromptTemplate(template=PROMPT_TEMPLATE,
-                        input_variables=["context", "question"])
+prompt = PromptTemplate(
+    input_variables=["history", "context", "question"],
+    template=PROMPT_TEMPLATE
+)
 
 # Initialize LLM
 llm = ChatOpenAI(openai_api_key=OPENAI_API_KEY, model="gpt-3.5-turbo")
+
+# Initialize memory
+memory = ConversationBufferWindowMemory(
+    input_key="question",
+    memory_key="history",
+    k=CONV_HISTORY_SIZE
+)
 
 # Function to set up the retriever and RetrievalQA chain
 
@@ -97,11 +102,13 @@ def setup_chain(hybrid: bool):
             embeddings_model=dense_embedding_func
         )
 
-    # Create the RetrievalQA chain
-    qa_chain = RetrievalQA.from_llm(
+    # Create the RetrievalQA chain with memory and custom prompt
+    qa_chain = RetrievalQA.from_chain_type(
         llm=llm,
+        chain_type="stuff",
         retriever=retriever,
-        return_source_documents=True
+        return_source_documents=True,
+        chain_type_kwargs={"prompt": prompt, "memory": memory}
     )
 
     return qa_chain
