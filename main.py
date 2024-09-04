@@ -4,16 +4,20 @@ import logging
 from typing import Any
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
-from langchain_milvus.utils.sparse import BM25SparseEmbedding
+from langchain_milvus.retrievers import MilvusCollectionHybridSearchRetriever
 from retrievers import SpladeSparseEmbedding
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from pymilvus import (
     Collection,
+    CollectionSchema,
+    DataType,
+    FieldSchema,
+    WeightedRanker,
     connections,
 )
 from constants import COLLECTION_NAME, CONNECTION_ARGS
 import click
-from retrievers import CustomHybridRetriever, StandardRetriever
+from retrievers import StandardRetriever
 from langchain.chains import RetrievalQA
 
 TOP_K = 2
@@ -32,8 +36,8 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 # Load embeddings
 # with open('bm25_embeddings.pkl', 'rb') as f:
 #     sparse_embeddings: BM25SparseEmbedding = pickle.load(f)
-sparse_embeddings = SpladeSparseEmbedding()
-dense_embeddings = OpenAIEmbeddings(
+sparse_embedding_func = SpladeSparseEmbedding()
+dense_embedding_func = OpenAIEmbeddings(
     openai_api_key=OPENAI_API_KEY, model="text-embedding-ada-002")
 
 # Define fields and collection
@@ -42,6 +46,9 @@ dense_field = "dense_vector"
 sparse_field = "sparse_vector"
 text_field = "text"
 collection = Collection(COLLECTION_NAME)
+# Define search parameters for dense and sparse fields
+dense_search_params = {"metric_type": "IP", "params": {}}
+sparse_search_params = {"metric_type": "IP"}
 
 # Define prompt template
 PROMPT_TEMPLATE = """
@@ -71,13 +78,14 @@ def setup_chain(hybrid: bool):
     if hybrid:
         logging.info("Running in hybrid retrieval mode.")
         # Use the custom hybrid retriever
-        retriever = CustomHybridRetriever(
+        retriever = MilvusCollectionHybridSearchRetriever(
             collection=collection,
-            dense_field=dense_field,
-            sparse_field=sparse_field,
+            rerank=WeightedRanker(0.5, 0.5),
+            anns_fields=[dense_field, sparse_field],
+            field_embeddings=[dense_embedding_func, sparse_embedding_func],
+            field_search_params=[dense_search_params, sparse_search_params],
             top_k=TOP_K,
-            embeddings_model=dense_embeddings,
-            sparse_embeddings_model=sparse_embeddings,
+            text_field=text_field,
         )
     else:
         logging.info("Running in dense-only retrieval mode.")
@@ -86,7 +94,7 @@ def setup_chain(hybrid: bool):
             collection=collection,
             dense_field=dense_field,
             top_k=TOP_K,
-            embeddings_model=dense_embeddings
+            embeddings_model=dense_embedding_func
         )
 
     # Create the RetrievalQA chain
