@@ -6,6 +6,7 @@ from langchain_core.prompts import PromptTemplate
 from langchain_milvus.retrievers import MilvusCollectionHybridSearchRetriever
 from retrievers import SpladeSparseEmbedding
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from retrievers import CustomHybridRetriever
 from pymilvus import (
     Collection,
     CollectionSchema,
@@ -83,23 +84,26 @@ def setup_chain(hybrid: bool):
     if hybrid:
         logging.info("Running in hybrid retrieval mode.")
         # Use the custom hybrid retriever
-        retriever = MilvusCollectionHybridSearchRetriever(
+        retriever = CustomHybridRetriever(
             collection=collection,
-            rerank=WeightedRanker(0.5, 0.5),
-            anns_fields=[dense_field, sparse_field],
-            field_embeddings=[dense_embedding_func, sparse_embedding_func],
-            field_search_params=[dense_search_params, sparse_search_params],
+            dense_field=dense_field,
+            sparse_field=sparse_field,
             top_k=TOP_K,
-            text_field=text_field,
+            embeddings_model=dense_embedding_func,
+            sparse_embeddings_model=sparse_embedding_func,
+            ratio=[0.5, 0.5]  # Adjust this ratio as needed
         )
     else:
         logging.info("Running in dense-only retrieval mode.")
         # Use the standard retriever for dense-only search
-        retriever = StandardRetriever(
+        retriever = CustomHybridRetriever(
             collection=collection,
             dense_field=dense_field,
+            sparse_field=sparse_field,
             top_k=TOP_K,
-            embeddings_model=dense_embedding_func
+            embeddings_model=dense_embedding_func,
+            sparse_embeddings_model=sparse_embedding_func,
+            ratio=[1.0, 0.0]  # Adjust this ratio as needed
         )
 
     # Create the RetrievalQA chain with memory and custom prompt
@@ -112,6 +116,7 @@ def setup_chain(hybrid: bool):
     )
 
     return qa_chain
+
 
 # Define the chatbot loop to include sources in the response
 

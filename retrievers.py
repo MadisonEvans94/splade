@@ -114,16 +114,7 @@ class CustomHybridRetriever(BaseRetriever):
     top_k: int = Field(...)
     embeddings_model: Embeddings = Field(...)
     sparse_embeddings_model: BaseSparseEmbedding = Field(...)
-
-    def __init__(self, collection: Collection, dense_field: str, sparse_field: str, top_k: int, embeddings_model: Embeddings, sparse_embeddings_model: BaseSparseEmbedding, ratio: List[float] = [0.5, 0.5]):
-        super().__init__(collection=collection, dense_field=dense_field,
-                         top_k=top_k, embeddings_model=embeddings_model)
-        self.collection = collection
-        self.dense_field = dense_field
-        self.sparse_field = sparse_field
-        self.top_k = top_k
-        self.embeddings_model = embeddings_model
-        self.sparse_embeddings_model = sparse_embeddings_model
+    ratio: List[float] = Field(default_factory=lambda: [0.5, 0.5])
 
     def _retrieve_dense_request(self, query: str) -> AnnSearchRequest:
         dense_query_embedding = self.embeddings_model.embed_query(query)
@@ -136,13 +127,12 @@ class CustomHybridRetriever(BaseRetriever):
         return dense_request
 
     def _retrieve_sparse_request(self, query: str) -> AnnSearchRequest:
-        sparse_embedding = SpladeSparseEmbedding()
-        sparse_dict = sparse_embedding.embed_query(query)
+        sparse_dict = self.sparse_embeddings_model.embed_query(query)
         sparse_request = AnnSearchRequest(
             data=[sparse_dict],
-            anns_field="sparse_vector",
+            anns_field=self.sparse_field,
             param={"metric_type": "IP"},
-            limit=3
+            limit=self.top_k
         )
         return sparse_request
 
@@ -151,7 +141,7 @@ class CustomHybridRetriever(BaseRetriever):
     ) -> List[Document]:
         dense_request = self._retrieve_dense_request(query)
         sparse_request = self._retrieve_sparse_request(query)
-        reranker = WeightedRanker(0.5, 0.5)
+        reranker = WeightedRanker(*self.ratio)
         results = self.collection.hybrid_search(
             [dense_request, sparse_request],
             rerank=reranker,
