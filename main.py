@@ -1,12 +1,13 @@
 import os
 import logging
-from typing import Any
+from typing import Any, List
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain_milvus.retrievers import MilvusCollectionHybridSearchRetriever
 from retrievers import SpladeSparseEmbedding
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from retrievers import CustomHybridRetriever
+from langchain_milvus.utils.sparse import BaseSparseEmbedding, BM25SparseEmbedding
 from pymilvus import (
     Collection,
     CollectionSchema,
@@ -35,7 +36,28 @@ connections.connect(**CONNECTION_ARGS)
 # Load environment variables
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-sparse_embedding_func = SpladeSparseEmbedding()
+# instantiate the collection
+collection = Collection(COLLECTION_NAME)
+
+# get corpus
+
+
+def get_corpus(collection: Collection) -> List[str]:
+    # Fetch all documents with a query expression matching any valid pk
+    results = collection.query(expr="pk != ''", output_fields=["text"])
+    corpus = [doc["text"] for doc in results]
+    return corpus
+
+
+
+corpus = get_corpus(collection)
+sparse_embedding_type = "BM25"
+if sparse_embedding_type == "SPLADE": 
+    logging.info("Using SPLADE sparse embeddings.")
+    sparse_embedding_func = SpladeSparseEmbedding()
+else: 
+    logging.info("Using BM25 sparse embeddings.")
+    sparse_embedding_func = BM25SparseEmbedding(corpus)
 dense_embedding_func = OpenAIEmbeddings(
     openai_api_key=OPENAI_API_KEY, model="text-embedding-ada-002")
 
@@ -44,7 +66,7 @@ pk_field = "pk"
 dense_field = "dense_vector"
 sparse_field = "sparse_vector"
 text_field = "text"
-collection = Collection(COLLECTION_NAME)
+
 
 # Define search parameters for dense and sparse fields
 dense_search_params = {"metric_type": "IP", "params": {}}

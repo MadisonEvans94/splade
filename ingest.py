@@ -114,23 +114,20 @@ def sparse_to_dict(sparse_array) -> Dict[int, float]:
     return result_dict
 
 
-def generate_sparse_embeddings(chunks: List[Tuple[str, str]]):
+def generate_sparse_embeddings(chunks: List[Tuple[str, str]], use_bm25: bool):
     corpus = [chunk[1] for chunk in chunks]
-    # sparse_embeddings_func = BM25SparseEmbedding(corpus=corpus)
+    if use_bm25:
+        logging.info("Using BM25 for sparse embeddings.")
+        sparse_embeddings_func = BM25SparseEmbedding(corpus=corpus)
+        sparse_embeddings = sparse_embeddings_func.embed_documents(corpus)
+    else:
+        logging.info("Using SPLADE for sparse embeddings.")
+        sparse_embeddings_unformatted = splade_ef.encode_documents(corpus)
+        sparse_embeddings = [sparse_to_dict(embedding) for embedding in sparse_embeddings_unformatted]
+    
+    logging.info("Generated sparse embeddings")
 
-    # with open('bm25_embeddings.pkl', 'wb') as f:
-    #     pickle.dump(sparse_embeddings_func, f)
-    # print(f"\n\n\n{type(sparse_embeddings_func)}\n\n\n")
-    # sparse_embeddings = sparse_embeddings_func.embed_documents(corpus)
-    sparse_embeddings = splade_ef.encode_documents(corpus)
-    sparse_embeddings_formatted = [sparse_to_dict(embedding) for embedding in sparse_embeddings]
-    # Debugging: Print sparse embeddings to verify they are generated correctly
-    # Print first 5 for sanity check
-    logging.info(
-        f"Generated sparse embeddings: {sparse_embeddings_formatted[:5]}")
-
-    return sparse_embeddings_formatted
-    # return sparse_embeddings
+    return sparse_embeddings
 
 
 def insert_embeddings(dense_embeddings, sparse_embeddings, chunks, collection_name):
@@ -140,21 +137,17 @@ def insert_embeddings(dense_embeddings, sparse_embeddings, chunks, collection_na
     ids = [str(uuid.uuid4()) for _ in range(num_embeddings)]
     filenames = [chunk[0] for chunk in chunks]  # Extract filename part
 
-    # Prepare the data in the correct format
     data_to_insert = [
-        ids,                        # List of unique IDs
-        dense_embeddings,           # List of dense embedding vectors
-        sparse_embeddings,          # List of sparse embedding vectors
-        [chunk[1] for chunk in chunks],  # Corresponding chunks of text
-        filenames                   # Corresponding filenames
+        ids,
+        dense_embeddings,
+        sparse_embeddings,
+        [chunk[1] for chunk in chunks],
+        filenames
     ]
-    print(f"DATA TO INSERT: {data_to_insert[0]}")
 
-    # Insert data into the collection
     output = collection.insert(data_to_insert)
     print(output)
 
-    # Flush the collection to ensure data is written
     collection.flush()
 
     dense_index = {"index_type": "FLAT", "metric_type": "IP"}
@@ -167,19 +160,29 @@ def insert_embeddings(dense_embeddings, sparse_embeddings, chunks, collection_na
     logging.info(
         f"Indexes created on fields 'dense_vector' and 'sparse_vector' for collection '{collection_name}'.")
 
-    # Load the collection into memory after creating the indexes
     collection.load()
 
+
 @click.command()
-def main():
+@click.option('--bm25', is_flag=True, help="Use BM25 for sparse embeddings.")
+@click.option('--splade', is_flag=True, help="Use SPLADE for sparse embeddings.")
+def main(bm25, splade):
     source_dir = "./SOURCE_DOCUMENTS"
     documents = load_documents(source_dir)
     chunks = preprocess_documents(documents)
 
     dense_embeddings = generate_dense_embeddings(chunks)
-    sparse_embeddings = generate_sparse_embeddings(chunks)
-    collection_name = COLLECTION_NAME
 
+    if bm25:
+        sparse_embeddings = generate_sparse_embeddings(chunks, use_bm25=True)
+    elif splade:
+        sparse_embeddings = generate_sparse_embeddings(chunks, use_bm25=False)
+    else:
+        logging.error(
+            "You must specify either --bm25 or --splade for sparse embeddings.")
+        return
+
+    collection_name = COLLECTION_NAME
     insert_embeddings(dense_embeddings, sparse_embeddings,
                       chunks, collection_name)
 

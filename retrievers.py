@@ -1,7 +1,7 @@
 import logging
 from pydantic import Field
 from typing import Dict, List
-from langchain_milvus.utils.sparse import BaseSparseEmbedding
+from langchain_milvus.utils.sparse import BaseSparseEmbedding, BM25SparseEmbedding
 from langchain.embeddings.base import Embeddings
 from pymilvus import (
     AnnSearchRequest,
@@ -19,16 +19,6 @@ sparse_ef = model.sparse.SpladeEmbeddingFunction(
     model_name="naver/splade-cocondenser-selfdistil",
     device="cpu",
 )
-
-
-def sparse_to_dict(sparse_array) -> Dict[int, float]:
-    # Convert sparse matrix to dictionary format
-    row_indices, col_indices = sparse_array.nonzero()
-    non_zero_values = sparse_array.data
-    result_dict = {}
-    for col_index, value in zip(col_indices, non_zero_values):
-        result_dict[col_index] = value
-    return result_dict
 
 
 class SpladeSparseEmbedding(BaseSparseEmbedding):
