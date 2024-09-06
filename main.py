@@ -4,9 +4,10 @@ from typing import Any, List
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain_milvus.retrievers import MilvusCollectionHybridSearchRetriever
+from tqdm import tqdm
 from retrievers import SpladeSparseEmbedding
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from retrievers import CustomHybridRetriever
+from retrievers import CustomHybridRetriever, StandardRetriever
 from langchain_milvus.utils.sparse import BaseSparseEmbedding, BM25SparseEmbedding
 from pymilvus import (
     Collection,
@@ -22,7 +23,7 @@ import click
 from retrievers import StandardRetriever
 from langchain.chains import RetrievalQA
 
-TOP_K = 2
+TOP_K = 5
 EXIT_COMMAND = 'exit'
 CONV_HISTORY_SIZE = 5  # Example size of conversation memory buffer
 
@@ -45,7 +46,10 @@ collection = Collection(COLLECTION_NAME)
 def get_corpus(collection: Collection) -> List[str]:
     # Fetch all documents with a query expression matching any valid pk
     results = collection.query(expr="pk != ''", output_fields=["text"])
-    corpus = [doc["text"] for doc in results]
+
+    # Use tqdm to show progress as documents are processed
+    corpus = [doc["text"] for doc in tqdm(results, desc="fitting bm25 model")]
+
     return corpus
 
 
@@ -118,14 +122,11 @@ def setup_chain(hybrid: bool):
     else:
         logging.info("Running in dense-only retrieval mode.")
         # Use the standard retriever for dense-only search
-        retriever = CustomHybridRetriever(
+        retriever = StandardRetriever(
             collection=collection,
             dense_field=dense_field,
-            sparse_field=sparse_field,
             top_k=TOP_K,
-            embeddings_model=dense_embedding_func,
-            sparse_embeddings_model=sparse_embedding_func,
-            ratio=[1.0, 0.0]  # Adjust this ratio as needed
+            embeddings_model=dense_embedding_func
         )
 
     # Create the RetrievalQA chain with memory and custom prompt
@@ -153,9 +154,9 @@ def format_sources(sources):
     for i, doc in enumerate(sources, start=1):
         metadata = doc.metadata
         source_info = f"Source {i}:"
-        source_info += f"\n- Document ID: {metadata.get('pk', 'Unknown')}"
+        source_info += f"\n- Document ID: {metadata.get('pk', 'Unknown')}\n"
         source_info += "----------------------------------"
-        source_info += f"\n\n{doc.page_content[:200]}...\n\n"
+        source_info += f"\n\n{doc.page_content}...\n\n"
         source_info += "----------------------------------"
         source_info += f"\n- Retrieved by: {metadata.get('retriever', 'Unknown')}"
         formatted_sources.append(source_info)

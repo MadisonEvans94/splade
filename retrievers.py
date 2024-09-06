@@ -7,6 +7,7 @@ from pymilvus import (
     AnnSearchRequest,
     Collection,
     WeightedRanker,
+    RRFRanker
 )
 from langchain_core.retrievers import BaseRetriever
 from langchain_core.documents import Document
@@ -131,7 +132,8 @@ class CustomHybridRetriever(BaseRetriever):
     ) -> List[Document]:
         dense_request = self._retrieve_dense_request(query)
         sparse_request = self._retrieve_sparse_request(query)
-        reranker = WeightedRanker(*self.ratio)
+        # reranker = WeightedRanker(*self.ratio)
+        reranker = RRFRanker(k=60)
         results = self.collection.hybrid_search(
             [dense_request, sparse_request],
             rerank=reranker,
