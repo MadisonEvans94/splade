@@ -105,7 +105,7 @@ class CustomHybridRetriever(BaseRetriever):
     top_k: int = Field(...)
     embeddings_model: Embeddings = Field(...)
     sparse_embeddings_model: BaseSparseEmbedding = Field(...)
-    ratio: List[float] = Field(default_factory=lambda: [0.5, 0.5])
+   
 
     def _retrieve_dense_request(self, query: str) -> AnnSearchRequest:
         dense_query_embedding = self.embeddings_model.embed_query(query)
@@ -132,7 +132,6 @@ class CustomHybridRetriever(BaseRetriever):
     ) -> List[Document]:
         dense_request = self._retrieve_dense_request(query)
         sparse_request = self._retrieve_sparse_request(query)
-        # reranker = WeightedRanker(*self.ratio)
         reranker = RRFRanker(k=60)
         results = self.collection.hybrid_search(
             [dense_request, sparse_request],

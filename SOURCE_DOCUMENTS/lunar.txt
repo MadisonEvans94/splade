@@ -1,0 +1,97 @@
+Lunar Lake is the codename for the Series 2 Core Ultra mobile processors designed by Intel, released on September 3, 2024.[1] It is set to follow on from Meteor Lake which saw Intel move from monolithic silicon to a disaggregated MCM design. Meteor Lake was limited to a mobile release while Arrow Lake includes both socketable desktop and mobile processors.
+
+Background
+On May 24, 2024, details on the Lunar Lake architecture were unveiled during Intel's Computex presentation in Taiwan. SKU names of Lunar Lake processors or details such as clock speeds were not announced.[2]
+
+Architecture
+
+One model of the Intel Core Ultra, Series 2
+Lunar Lake is an ultra-low power mobile SoC design. It is a successor to 15 W Meteor Lake-U processors while Arrow Lake replaces the midrange 28 W Meteor Lake-H processors. Lunar Lake's focus on better power efficiency targets premium ultra-thin laptops and compact mobile designs. Intel said that with Lunar Lake, it aimed to "bust the myth that [x86] can't be as efficient" as ARM.[3]
+
+Process node
+Lunar Lake is the first processor design by Intel where all logic dies are entirely fabricated on external nodes outsourced to TSMC. An analysis by Goldman Sachs indicated that Intel would be spending $5.6 billion in 2024 and $9.7 billion in 2025 outsourcing to TSMC.[4] In March 2024, Intel's chief financial officer admitted during an investment call that the company was "a little bit heavier than we want to be in terms of external wafer manufacturing versus internal".[5] The following month, Intel disclosed that their foundry business made a $7 billion operating loss during 2023.[6]
+
+Tile	Node	EUV	Die size	Ref.
+Compute tile	TSMC N3B	Yes	Un­known	[7]
+Platform controller tile	TSMC N6	Yes	Un­known	
+Foveros interposer base tile	Intel 22FFL	No	Un­known	
+Compute tile
+The Compute tile is Lunar Lake's largest tile. It has expanded functions over Meteor Lake's compute tile which solely housed CPU cores and cache. Instead, Lunar Lake's compute tile houses CPU cores and their cache, the GPU and the NPU. The previous generation Meteor Lake used the Intel 4 process on its compute tile while Lunar Lake moves to TSMC's N3B node.[8] N3B is TSMC's first generation 3 nm node with lower yields compared to the updated N3E node. Lunar Lake's compute tile was originally planned to be built on Intel's 18A node.[8] 18A will not debut until 2025 with Panther Lake mobile processors and Clearwater Forest server processors. Lunar Lake shares the same Lion Cove P-core and Skymont E-core architectures with Arrow Lake desktop and mobile processors.
+
+With the Lion Cove P-core Intel claims a 14% IPC uplift on average over Redwood Cove. Simultaneous multithreading (SMT) has been removed from Arrow Lake's Lion Cove P-cores.[9] SMT first made its debut in an Intel desktop processor with the Northwood-based Pentium 4 in 2002. The last x86-64 Intel desktop processor lineup not to feature SMT in any way was Core 2,[10] which was discontinued in 2011[11][a]. SMT, or Intel's marketing term HyperThreading, allows a single physical CPU core with 2 threads to execute two tasks simultaneously. In the early 2000s, SMT was a way to add more processing threads to dual and quad-core CPUs while not using too much die space. The removal of SMT allows the physical core die area to be reduced. Increasing the number of processing threads with a greater number of physical cores can compensate for the removal of SMT providing 2 threads per core.[12] Intel's removal of SMT yields a 15% saving in die area and 5% greater performance-per-watt.[13] To counteract the removal of SMT, Intel prioritzed executing more instructions per cycle for high single-threaded performance rather than parallel execution. L2 cache per core for Lion Cove is increased to 2.5 MB from Redwood Cove's 2 MB. Lunar Lake is able to exercise more granular control over Lion Cove's boost clocks. Lion Cove's boost clocks are able to increase in increments of 16.67 MHz rather than in 100 MHz increments.[3]
+
+Lunar Lake's cluster of 4 Skymont E-cores exist on a 'Low Power Island' separate from the P-cores. As a result, the E-cores have their own dedicated L3 cache not accessible to the P-cores rather than sitting on a ringbus fabric with P-cores. Intel claims a massive 68% IPC gain in Skymont E-cores over Crestmont.[14] It achieves this with the inclusion of new 8-wide integer ALUs, doubled from Crestmont.
+
+Neural Processing Unit (NPU)
+Lunar Lake's Neural Processing Unit (NPU), which performs AI operations locally, in-silicon rather than in the cloud, has been updated to Intel's "NPU 4" architecture with increased clock speeds. Intel claims that Lunar Lake can achieve a total of 120 TOPS of performance in AI workloads, with 48 TOPS coming from the NPU alone while an additional 67 TOPS come from the GPU and 5 TOPS from the CPU. Lunar Lake's 48 dedicated NPU TOPS meets Microsoft's requirements for laptops in order to be certified as Copilot+ PCs.[15] Microsoft has mandated 40 TOPs on NPU performance in order to run Copilot locally on Windows PCs.[16] For comparison, the NPU in Meteor Lake and Arrow Lake processors is able to output 10 TOPs.[17]
+
+Graphics
+Lunar Lake's GPU features second generation Xe2-LPG cores based on the Battlemage graphics architecture. The Battlemage architecture launched in Lunar Lake mobile processors before discrete Arc desktop graphics cards. It contains eight Xe2-LPG cores that share an 8 MB L2 cache. The graphics tile is able to provide up to 67 TOPS of INT8 compute for AI processing.[18] The display engine has three display pipes with HDMI 2.1, DisplayPort 2.1 and a new eDP 1.5 connection.[8] It features H.266 VVC hardware fixed-function decoding support.
+
+Platform controller tile
+The small platform controller tile provides security functions and I/O connectivity including Wi-Fi 7, Thunderbolt 4, 4 PCIe 4.0 lanes and 4 PCIe 5.0 lanes. Lunar Lake's platform controller tile uses the same N6 node from TSMC that is used by Meteor Lake and Arrow Lake's SoC tiles.[7] The platform controller tile in Lunar Lake does not feature two dedicated low power E-cores like those in Meteor Lake and Arrow Lake's SoC tile. This change has been attributed to the power efficiency gains from the compute tile moving from the Intel 4 process to TSMC's more advanced N3B node.[19]
+
+Memory
+Lunar Lake features on-package LPDDR5X-8533 RAM available in 16 GB or 32 GB capacities.[20] This on-package memory is a similar approach to Apple with its M series SoCs that integrate unified LPDDR memory onto the package beside the CPU silicon.[21] On-package memory allows the CPU to benefit from higher memory bandwidth at lower power and decreased latency as memory is physically closer to the CPU. Intel claims that Lunar Lake's on-package memory achieved a reduction of 40% in power consumption and "up to 250 square millimeters" of space.[22] Furthermore, memory that is integrated onto the CPU package means that the overall processor physical footprint in laptops can be reduced as memory does not need to be placed onto a separate motherboard with its own cooling solution. Less complex cooling being required means that Lunar Lake processors can more easily fit in ultra-low power compact mobile solutions. The downside of Lunar Lake's on-package memory is that is not user replaceable or upgradable to higher capacities beyond 32 GB with SO-DIMMs.[22] Due to the inclusion of on-package memory, an additional 2 W is added to the TDP of Lunar Lake processors. Lunar Lake processors have a TDP ranging from 17 to 30 W compared to the 15–28 W TDP of Meteor Lake-H processors.
+
+here are details of Lunar Lake: Launched	September 3, 2024
+Designed by	Intel
+Manufactured by	
+TSMC
+Fabrication process	
+TSMC N3B
+TSMC N6
+Codename(s)	
+LNL
+Platform(s)	
+Mobile
+
+Branding
+Brand name(s)	Core Ultra
+Generation	Series 2
+
+Instructions & Architecture
+Instructions set	x86
+Instructions	x86-64
+P-core architecture	Lion Cove
+E-core architecture	Skymont
+
+Cores
+Core count	Up to 8 cores:
+4 P-cores
+4 E-cores
+P-core L0 cache	112 KB (per core):
+64 KB instructions
+48 KB data
+P-core L1 cache	192 KB (per core)
+E-core L1 cache	96 KB (per core):
+64 KB instructions
+32 KB data
+P-core L2 cache	2.5 MB (per core)
+E-core L2 cache	4 MB (per cluster)
+P-core L3 cache	3 MB (per core)
+
+Graphics
+Graphics architecture	Xe2-LPG
+(Battlemage)
+Execution Units	Up to 64 EUs
+Xe Cores	Up to 8 Xe Cores
+NPU
+Architecture	NPU 4
+TOPS	48
+
+Memory Support
+Type	LPDDR5X-8533
+Memory channels	2 channels
+Maximum capacity	Up to 32 GB
+
+I/O
+PCIe support	PCIe 5.0
+PCIe lanes	8 lanes:
+4 PCIe 5.0 lanes
+4 PCIe 4.0 lanes
+
+History
+Predecessor	Meteor Lake
+Variant	Arrow Lake
+Successor	Panther Lake

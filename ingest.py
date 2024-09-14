@@ -7,16 +7,15 @@ from tqdm import tqdm
 from dotenv import load_dotenv
 from langchain_openai import OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from pymilvus import connections, Collection, FieldSchema, CollectionSchema, DataType, utility, Index
+from pymilvus import connections, Collection, FieldSchema, CollectionSchema, DataType, utility
 from pdfminer.high_level import extract_text
 from constants import CONNECTION_ARGS, COLLECTION_NAME, VECTOR_DIM
 from langchain_milvus.utils.sparse import BM25SparseEmbedding
 from pymilvus import model
 import nltk
 
-import pickle
 
-nltk.download('punkt_tab')
+nltk.download('punkt')
 
 load_dotenv()
 
@@ -44,13 +43,15 @@ def create_collection(collection_name):
             FieldSchema(name="pk", dtype=DataType.VARCHAR,
                         max_length=36, is_primary=True),
             FieldSchema(name="dense_vector",
-                        dtype=DataType.FLOAT_VECTOR,
-                        dim=VECTOR_DIM),
+                        dtype=DataType.FLOAT_VECTOR, dim=VECTOR_DIM),
             FieldSchema(name="sparse_vector",
                         dtype=DataType.SPARSE_FLOAT_VECTOR),
             FieldSchema(name="text", dtype=DataType.VARCHAR, max_length=8192),
-            FieldSchema(name="filename", dtype=DataType.VARCHAR,
-                        max_length=256)  # Add filename field
+            FieldSchema(name="filename",
+                        dtype=DataType.VARCHAR, max_length=256),
+            # Store only the processed content embedding
+            FieldSchema(name="processed_content_embedding",
+                        dtype=DataType.FLOAT_VECTOR, dim=VECTOR_DIM)
         ]
 
         schema = CollectionSchema(
@@ -63,7 +64,7 @@ def create_collection(collection_name):
     return collection
 
 
-def load_documents(source_dir: str) -> List[str]:
+def load_documents(source_dir: str) -> List[Tuple[str, str]]:
     documents = []
     for filename in tqdm(os.listdir(source_dir), desc="Loading documents"):
         file_path = os.path.join(source_dir, filename)
@@ -82,26 +83,28 @@ def load_documents(source_dir: str) -> List[str]:
     return documents
 
 
-def preprocess_documents(texts: List[str]) -> List[Tuple[str, str]]:
+def preprocess_documents(texts: List[Tuple[str, str]]) -> List[Tuple[str, str]]:
+    """
+    Splits documents into chunks and combines with the preamble.
+    """
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=1000, chunk_overlap=100)
     chunks = []
     for filename, text in tqdm(texts, desc="Splitting documents"):
         split_texts = splitter.split_text(text)
-        for text in split_texts:
-            chunks.append((filename, text))
+        for text_chunk in split_texts:
+            chunks.append((filename, text_chunk))
     return chunks
 
 
-def generate_dense_embeddings(chunks: List[Tuple[str, str]]):
-    embeddings_model = OpenAIEmbeddings(
-        openai_api_key=OPENAI_API_KEY, model="text-embedding-ada-002")
-    embeddings = []
-    batch_size = 10
-    for i in tqdm(range(0, len(chunks), batch_size), desc="Generating dense embeddings"):
-        batch_chunks = [chunk[1] for chunk in chunks[i:i + batch_size]]
-        batch_embeddings = embeddings_model.embed_documents(batch_chunks)
-        embeddings.extend(batch_embeddings)
+def generate_combined_embeddings(chunks: List[Tuple[str, str]], embeddings_model) -> List:
+    """
+    Generates and caches embeddings for combined preamble + content.
+    """
+    processed_contents = [chunk[1]
+                          for chunk in chunks]  # Extract combined content
+    embeddings = embeddings_model.embed_documents(
+        processed_contents)  # Embed combined content
     return embeddings
 
 
@@ -114,35 +117,38 @@ def sparse_to_dict(sparse_array) -> Dict[int, float]:
     return result_dict
 
 
-def generate_sparse_embeddings(chunks: List[Tuple[str, str]], use_bm25: bool):
+def generate_sparse_embeddings(chunks: List[Tuple[str, str]]):
     corpus = [chunk[1] for chunk in chunks]
-    if use_bm25:
-        logging.info("Using BM25 for sparse embeddings.")
-        sparse_embeddings_func = BM25SparseEmbedding(corpus=corpus)
-        sparse_embeddings = sparse_embeddings_func.embed_documents(corpus)
-    else:
-        logging.info("Using SPLADE for sparse embeddings.")
-        sparse_embeddings_unformatted = splade_ef.encode_documents(corpus)
-        sparse_embeddings = [sparse_to_dict(embedding) for embedding in sparse_embeddings_unformatted]
-    
+
+    logging.info("Using BM25 for sparse embeddings.")
+    sparse_embeddings_func = BM25SparseEmbedding(corpus=corpus)
+    sparse_embeddings = sparse_embeddings_func.embed_documents(corpus)
+
     logging.info("Generated sparse embeddings")
 
     return sparse_embeddings
 
 
-def insert_embeddings(dense_embeddings, sparse_embeddings, chunks, collection_name):
+def insert_embeddings(dense_embeddings, sparse_embeddings, combined_embeddings, chunks, collection_name):
+    """
+    Inserts embeddings and additional fields into the Milvus collection.
+    """
     collection = create_collection(collection_name)
 
-    num_embeddings = len(dense_embeddings)
+    num_embeddings = len(combined_embeddings)
     ids = [str(uuid.uuid4()) for _ in range(num_embeddings)]
     filenames = [chunk[0] for chunk in chunks]  # Extract filename part
+    # Original processed content for reference
+    texts = [chunk[1] for chunk in chunks]
 
+    # Insert data according to the schema
     data_to_insert = [
         ids,
         dense_embeddings,
         sparse_embeddings,
-        [chunk[1] for chunk in chunks],
-        filenames
+        texts,
+        filenames,
+        combined_embeddings  # Processed content embeddings
     ]
 
     output = collection.insert(data_to_insert)
@@ -152,39 +158,41 @@ def insert_embeddings(dense_embeddings, sparse_embeddings, chunks, collection_na
 
     dense_index = {"index_type": "FLAT", "metric_type": "IP"}
     sparse_index = {"index_type": "SPARSE_INVERTED_INDEX", "metric_type": "IP"}
+    processed_content_index = {"index_type": "FLAT", "metric_type": "IP"}
 
     collection.create_index(field_name="dense_vector",
                             index_params=dense_index)
     collection.create_index(field_name="sparse_vector",
                             index_params=sparse_index)
+    collection.create_index(field_name="processed_content_embedding",
+                            index_params=processed_content_index)
     logging.info(
-        f"Indexes created on fields 'dense_vector' and 'sparse_vector' for collection '{collection_name}'.")
+        f"Indexes created on fields 'dense_vector', 'sparse_vector', and 'processed_content_embedding' for collection '{collection_name}'.")
 
     collection.load()
 
 
-@click.command()
-@click.option('--bm25', is_flag=True, help="Use BM25 for sparse embeddings.")
-@click.option('--splade', is_flag=True, help="Use SPLADE for sparse embeddings.")
-def main(bm25, splade):
+# @click.command()
+# @click.option('--hybrid', is_flag=True, help="Use BM25 for sparse embeddings.")
+def main(hybrid):
     source_dir = "./SOURCE_DOCUMENTS"
     documents = load_documents(source_dir)
+    # Example preamble
     chunks = preprocess_documents(documents)
 
-    dense_embeddings = generate_dense_embeddings(chunks)
+    # Generate dense embeddings for content + preamble
+    embeddings_model = OpenAIEmbeddings(
+        openai_api_key=OPENAI_API_KEY, model="text-embedding-ada-002")
+    combined_embeddings = generate_combined_embeddings(
+        chunks, embeddings_model)
 
-    if bm25:
-        sparse_embeddings = generate_sparse_embeddings(chunks, use_bm25=True)
-    elif splade:
-        sparse_embeddings = generate_sparse_embeddings(chunks, use_bm25=False)
-    else:
-        logging.error(
-            "You must specify either --bm25 or --splade for sparse embeddings.")
-        return
-
+    # Generate sparse embeddings based on user preference
+    # if hybrid:
+        # sparse_embeddings = generate_sparse_embeddings(chunks, use_bm25=True)
+    sparse_embeddings = generate_sparse_embeddings(chunks)
     collection_name = COLLECTION_NAME
-    insert_embeddings(dense_embeddings, sparse_embeddings,
-                      chunks, collection_name)
+    insert_embeddings(combined_embeddings, sparse_embeddings,
+                      combined_embeddings, chunks, collection_name)
 
 
 if __name__ == "__main__":

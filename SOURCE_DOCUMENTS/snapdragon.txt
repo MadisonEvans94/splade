@@ -1,0 +1,106 @@
+Snapdragon is a suite of system-on-a-chip (SoC) semiconductor products for mobile devices designed and marketed by Qualcomm Technologies Inc. The Snapdragon's central processing unit (CPU) uses the ARM architecture. As such, Qualcomm often refers to the Snapdragon as a "mobile platform". Snapdragon semiconductors are embedded in devices of various systems, including vehicles, Android, Windows Phone and netbooks.[1] In addition to the processors, the Snapdragon line includes modems, Wi-Fi chips and mobile charging products.
+
+The Snapdragon QSD8250 was released in December 2007. It included the first 1 GHz processor for mobile phones. Qualcomm introduced its "Krait" microarchitecture in the second generation of Snapdragon SoCs in 2011, allowing each processor core to adjust its speed based on the device's needs. At the 2013 Consumer Electronics Show, Qualcomm introduced the first of the Snapdragon 800 series and renamed prior models as the 200, 400 and 600 series. Several new iterations have been introduced since, such as the Snapdragon 805, 810, 615 and 410. Qualcomm re-branded its modem products under the Snapdragon name in February 2015. As of 2018, Asus, HP and Lenovo have begun selling laptops with Snapdragon-based CPUs running Windows 10 under the name "Always Connected PCs", marking an entry into the PC market for Qualcomm and the ARM architecture.[2][3]
+
+History
+Pre-release
+Qualcomm announced it was developing the Scorpion central processing unit (CPU) in November 2007.[4][5] The Snapdragon system on chip (SoC) was announced in November 2006 and included the Scorpion processor, as well as other semiconductors.[5][6] This also included Qualcomm's first custom Hexagon digital signal processor (DSP).[7]
+
+According to a Qualcomm spokesperson, it was named Snapdragon, because "Snap and Dragon sounded fast and fierce."[8] The following month, Qualcomm acquired Airgo Networks for an undisclosed amount; it said Airgo's 802.11a/b/g and 802.11n Wi-Fi technology would be integrated with the Snapdragon product suite.[9][10] Early versions of Scorpion had a processor core design similar to the Cortex-A8.[5]
+
+2007–2009: Early products
+
+Qualcomm QSD8250
+The first Snapdragon shipments were of the QSD8250 in November 2007.[11] According to CNET, Snapdragon's claim to fame was having the first 1 GHz mobile made processor.[11][12] Most smartphones at the time were using 500 MHz processors.[11] The first generation of Snapdragon products supported a 720p resolution, 3D graphics and a 12-megapixel camera.[11][13] By November 2008, 15 device manufacturers decided to embed Snapdragon chips in their consumer electronics products.[14][15][2]
+
+In November 2008, Qualcomm announced it would also compete against Intel in the netbook processor market with dual-core Snapdragon system-on-chips planned for late 2009.[16] It demonstrated a Snapdragon processor that consumed less power than Intel chips announced around the same time and claimed it would also cost less when released.[17][18][19] That same month, Qualcomm introduced a Snapdragon-based prototype netbook called Kayak that used 1.5 GHz processors and was intended for developing markets.[15][16][20]
+
+In May 2009, Java SE was ported and optimized for Snapdragon.[21] At the November 2009 Computex Taipei show, Qualcomm announced the QSD8650A addition to the Snapdragon product suite, which was based on 45 nanometer manufacturing processes. It featured a 1.2 GHz processor and had lower power consumption than prior models.[22][23]
+
+2009–2010: Adoption
+By late 2009, smartphone manufacturers announced they would be using Snapdragon SoCs in the Acer Liquid Metal, HTC HD2, Toshiba TG01 and the Sony Ericsson Xperia X10.[12][24][25] Lenovo announced the first netbook product using Snapdragon SoCs that December.[26] According to PC World, mobile devices using Snapdragon had longer battery life and were smaller in size than those using other SoCs.[27]
+
+By June 2010, Snapdragon chips were embedded in 20 available consumer devices and incorporated into 120 product designs in development.[28] Apple had a dominant market position for smartphones at the time and did not incorporate Snapdragon into any of its products. The success of Snapdragon therefore relied on competing Android phones, such as Google's Nexus One and the HTC Incredible, challenging Apple's market position.[28] Android devices did end up taking market share from the iPhone and predominantly used Snapdragon.[29][30][31]
+
+There was an "unconfirmed but widely circulated report" speculating that Apple was going to start using Snapdragon SoCs in Verizon-based iPhones.[29] As of 2012, Apple was still using their own Ax semiconductor designs.[32] Support for the Windows Phone 7 operating systems was added to Snapdragon in October 2010.[30]
+
+By 2011 Snapdragon was embedded in Hewlett Packard's WebOS devices[33] and had a 50% market share of a $7.9 billion smartphone processor market.[34]
+
+As of July 2014, the market share of Android phones had grown to 84.6 percent,[35] and Qualcomm's Snapdragon chips were embedded in 41% of smartphones.[36]
+
+Snapdragon chips are also used in most Android-based smartwatches.[37] Snapdragon products have also been used in virtual reality products, in vehicles like the Maserati Quattroporte and Cadillac XTS and in other applications.[38]
+
+2010–2015: 32-bit ARM
+
+Snapdragon S4 Play Processor - Qualcomm MSM8225
+In June 2010, Qualcomm began sampling the third generation of Snapdragon products; two dual-core 1.2 GHz system on chips (SoC) called the Mobile Station Modem (MSM) 8260 and 8660.[39] The 8260 was for GSM, UMTS and HSPA+ networks, while the 8660 was for CDMA2000 and EVDO networks.[40] That November Qualcomm announced the MSM8960[41][42] for LTE networks.[40]
+
+In early 2011, Qualcomm announced a new processor architecture called Krait,[43] which used the ARM v7 instruction set, but was based on Qualcomm's own processor design. The processors were called S4 and had a feature named Asynchronous Symmetrical Multi-Processing (aSMP), meaning each processor core adjusted its clock speed and voltage based on the device's activity in order to optimize battery usage.[44] Prior models were renamed to S1, S2 and S3 to distinguish each generation.[45]
+
+The S4-based generation of Snapdragon SoCs began shipping to product manufacturers with the MSM8960 in February 2012.[46] In benchmark tests by Anandtech, the MSM8960 had better performance than any other processor tested. In an overall system benchmark, the 8960 obtained a score of 907, compared to 528 and 658 for the Galaxy Nexus and HTC Rezound respectively.[47] In a Quadrant benchmark test, which assesses raw processing power, a dual-core Krait processor had a score of 4,952, whereas the quad-core Tegra 3 was just under 4,000.[48] The quad-core version, APQ8064, was made available in July 2012. It was the first Snapdragon SoC to use Qualcomm's Adreno 320 graphics processing unit (GPU).[49]
+
+Adoption of Snapdragon contributed to Qualcomm's transition from a wireless modem company to one that also produces a wider range of hardware and software for mobile devices.[50] In July 2011 Qualcomm acquired certain assets from GestureTek in order to incorporate its gesture recognition intellectual property into Snapdragon SoCs.[51] In mid-2012 Qualcomm announced the Snapdragon software development kit (SDK) for Android devices at the Uplinq developer conference.[52] The SDK includes tools for facial recognition, gesture recognition, noise cancellation and audio recording.[52] That November Qualcomm acquired some assets from EPOS Development in order to integrate its stylus and gesture recognition technology into Snapdragon products.[53] It also collaborated with Microsoft to optimize Windows Phone 8 for Snapdragon semiconductors.[54]
+
+By 2012, the Snapdragon S4 (Krait core) had taken a dominant share from other Android system-on-chips like Nvidia Tegra and Texas Instruments OMAP which caused the latter to exit the market.[55] As of July 2014, the market share of Android phones had grown to 84.6 percent,[35] and Qualcomm's Snapdragon chips powered 41% of smartphones.[36]
+
+However, the September 2013 debut of Apple's 64-bit A7 chip in the iPhone 5S forced Qualcomm to rush out a competing 64-bit solution, despite the capable performance of the Snapdragon 800/801/805, since their existing Krait cores were only 32-bit.[56] The first 64-bit SoCs, the Snapdragon 808 and 810, were rushed to market using generic Cortex-A57 and Cortex-A53 cores and suffered from overheating problems and throttling, particularly the 810, which led to Samsung ditching Snapdragon for its Galaxy S6 flagship phone.[57][58]
+
+The entry-level 200 series was expanded with six new processors using 28 nanometer manufacturing and dual or quad-core options in June 2013.[59] The entry-level Snapdragon 210, intended for low-cost phones, was announced in September 2014.[60]
+
+2016–present: Custom 64-bit ARM
+After Qualcomm's first attempt at 64-bit system on a chip, they created a new in-house architecture that in later models showed better thermal performance, especially when compared to the Snapdragon models launched after 2015, like the Snapdragon 820.[61]
+
+In early 2016, Qualcomm launched the Snapdragon 820, an ARM 64-bit quad-core processor using in-house designed Kryo cores. Qualcomm launched an updated Snapdragon 821 later in the year with higher clock speeds and slightly better performance. The Snapdragon 820 family uses Samsung's 14-nanometer FinFET process. Qualcomm also released the Qualcomm Snapdragon Neural Processing Engine SDK which was the first AI acceleration on smartphones.[62]
+
+Qualcomm announced the octa-core Snapdragon 835 SoC on 17 November 2016. Released the following year, it uses Kryo 280 cores and is built using Samsung's 10 nanometer FinFET process. At initial launch, due to Samsung's role in manufacturing the chip, its mobile division also acquired the initial inventory of the chip. That means that no other phone maker was able to manufacture products containing the Snapdragon 835 until Samsung released its flagship device of the year, the Galaxy S8.[63]
+
+At Computex 2017 in May, Qualcomm and Microsoft announced plans to launch Snapdragon-based laptops running Windows 10. Qualcomm partnered with HP, Lenovo, and Asus to release slim portables and 2-in-1 devices powered by the Snapdragon 835.[64]
+
+In December 2017, Qualcomm announced the octa-core Snapdragon 845. It uses the same 10-nanometer manufacturing process as the earlier Snapdragon 835 but introduced a new processor architecture, Kryo 385,[65] designed for better battery life, photography, and for use with artificial intelligence apps.[66][65]
+
+In early 2018, Qualcomm introduced the 7 series, which sits between the 6 and 8 series in terms of pricing and performance. The 700 launched with octa-core models Snapdragon 710 and 712, using the Kryo 360 processor architecture, and built on a 10-nanometer manufacturing process.[67][68][69]
+
+In 2019, Qualcomm released new variants of its mobile processors, with the Snapdragon 855 replacing the 845. The Snapdragon 855 competes against other high end system-on-chip solutions like the Apple A12, and Kirin 980. The Snapdragon 855 features Kryo 485 cores, built on TSMC's 7 nanometer process.[70] The Snapdragon 730 and 730G replaced the 710 and 712. The newer 730 and 730G feature Kryo 460 cores, built on Samsung's 8-nanometer process.[71]
+
+In December 2019, Qualcomm announced the Snapdragon 865 and Snapdragon 765, which succeeded the Snapdragon 855/855+ and Snapdragon 730/730G respectively. The Snapdragon 765 has integrated 5G, while the Snapdragon 865 is assisted by a separate Qualcomm X55 5G modem. Despite lacking integrated 5G, the Snapdragon 865 is incompatible with 4G phones.[72][73]
+
+In May 2020, Qualcomm announced the new Snapdragon 768G 5G processor, an upgraded version of the 765G processor. The main difference between the 765G and 768G is that the 768G will offer 15 percent increase in performance and higher clock speed on the CPU, up to 2.8 GHz from 2.4 GHz.[74]
+
+In September 2020, Qualcomm unveiled the Snapdragon 750G processor, the latest addition to the 7-series, designed to bring 5G support for low-latency mobile gaming.[75]
+
+In December 2020, Qualcomm unveiled the Snapdragon 888. The major differences compared to the 865/+ is a new core, designed by ARM, the ARM Cortex X1, support for LPDDR5-6400 and a built in 5G modem, meaning the X55 Modem is not required. The 888 is based on Samsung 5 nm, with a TDP of 5 watts, but this can be altered by the manufacturer.[76]
+
+NASA's Ingenuity helicopter, which landed on Mars in 2021, ran on a Snapdragon 801 processor.[77]
+
+In May 2022, Qualcomm announced their new model Snapdragon 8 plus Gen 1. Qualcomm states the upgraded model will offer 10% faster CPU performance, 10% faster GPU clocks, 30% power efficiency from both the CPU and GPU, 20% better AI performance per watt and 15% less power usage total. Additionally, following this announcement, Qualcomm also announced the new Snapdragon 7 gen 1 aimed at gamers with a 20% better graphics performance over the prior gen. Honor, Oppo and Xiaomi are the only brands listed as building devices around the 7 Gen 1, and are listed for release in the second quarter of 2022, whereas the 8 plus 1 gen devices are expected in the third quarter.[78]
+
+Description and current models
+Main article: List of Qualcomm Snapdragon processors
+Snapdragon system on chip products typically include a graphics processing unit (GPU), a global positioning system (GPS) and a cellular modem integrated into a single package.[79] It has software included that operates graphics, video and picture-taking.[80] There are 23 different Snapdragon processors under the 200, 400, 600, 700, and the 800 product families spanning from low to high-end respectively, as well as Wi-Fi and mobile charging products.[81] Some of their components include the Adreno graphics processing, the Qualcomm Hexagon DSP and processors using Qualcomm's S4 processor architecture. In addition to smartphones, the 400 series is used in smart watches[82] and the 602A is intended for electronics in cars.[83]
+
+The current Snapdragon naming scheme was implemented after the Snapdragon 800 family was announced at the 2013 Consumer Electronics Show; prior models were renamed to the 200, 400 or 600 series.[84][85] A new Snapdragon 600 was also released, which by mid-year was embedded in most new Android devices.[86] The 400 family is entry-level, the 600 is mass-market or mid-range, and 800 family is for high-end or flagship phones.[87][88]
+
+
+Snapdragon 410
+
+Snapdragon 600 (model APQ8064)
+The Snapdragon 805 was released in November 2013.[89] The 410, which is intended for low-cost phones in developing nations, was announced the following month.[90] In January 2014, Qualcomm introduced a modified version of the Snapdragon 600 called 602A[83] that is intended for in-car infotainment screens, backup cameras, and other driver assistance products.[91] The quad-core Snapdragon 610 and eight-core 615 were announced in February 2014.[92] The Snapdragon 808 and 810 were announced in April 2014.[93] The Snapdragon 835, announced in November 2017, is the first Qualcomm SOC that is built on a 10 nm architecture.[94] Qualcomm's new flagship chip for 2018, the 845, was announced in December 2017. According to Qualcomm, the 845 is 25-30% faster than the 835.
+
+In February 2015, Qualcomm re-branded its stand-alone modem products under the Snapdragon name; they were distinguished from SoCs using the "x" designation, such as the X7 or X12 modem.[87] The first Snapdragon modem for 5G networks, the X50, was announced in October 2016.[95] This was followed by the 2GBs X24 modem on a 7 nanometer manufacturing process that was announced in February 2018.[96]
+
+According to CNET, Windows phones were growing in US market share and ranked highly in CNET reviews due to their responsiveness.[97] Snapdragon SoCs are also used in most Windows phones[54] and most phones entering the market in mid-2013.[98] The LG G2 was the first phone to market using the Snapdragon 800 in August 2013.[99]
+
+In 2017 the 660 and 630 replaced the 653 and 626 mid-range models[100] and several chips in the 400 product family were revised.[101][102] In February 2017, Qualcomm introduced the Snapdragon X20, intended for 5G cell phone networks,[103] and two new chips for 802.11ax commercial Wi-Fi networks.[104] This was followed by the addition of the 636 to the 600 product family that October, which Qualcomm said would be 40 percent faster than the 630.[105]
+
+In August 2018, the Snapdragon 632, 439 and 429 were released.[106] The new SoC is aimed at mid-range devices such as the Moto G6 Play, Huawei Honor 7A and Nokia 5.[107]
+
+In December 2018, Qualcomm announced the 8cx at their Snapdragon Tech Summit 2018. The 8cx is Qualcomm's first SoC specifically designed for Always Connected PC (ACPC) platform. Unlike Qualcomm's past ACPC SoCs which were just their respective mobile SoCs at higher TDP.[108] Qualcomm also showcased their Snapdragon X50 5G modem, Snapdragon 855 and QTM052 mmWave Antenna Module.
+
+In February 2019, Qualcomm announced their Snapdragon X55 5G modem, QTM525 mmWave antenna module, QET6100 envelope tracker and the new QAT3555 antenna impedance tuner.[109]
+
+In July 2019, Qualcomm announced a refresh of the Snapdragon 855, the Snapdragon 855+, which is essentially an overclocked version of the 855 with both faster CPU and GPU performance.
+
+In December 2019, Qualcomm announced the Snapdragon X52 5G modem alongside the Snapdragon 765 and Snapdragon 865.
+
+Benchmark tests
+Benchmark tests of the Snapdragon 800's processor by PC Magazine found that its processing power was comparable to similar products from Nvidia.[110] Benchmarks of the Snapdragon 805 found that the Adreno 420 GPU resulted in a 40 percent improvement in graphics processing over the Adreno 330 in the Snapdragon 800, though there were only slight differences in processor benchmarks.[111] Benchmarks of the Snapdragon 801 inside an HTC One found a "bump all around" in benchmark improvements over the 800.[112] In 2015, Samsung's decision not to use the Snapdragon 810 in its Galaxy S6[57] had a significant detrimental impact on Snapdragon's revenues and reputation.[113] Benchmark tests by Ars Technica confirmed rumors that the 810 under-performed lower-end models and had overheating issues.[58][114] A Qualcomm spokesperson said these tests were done with early versions of the 810 that weren't ready for commercial use.[115] An updated version was released and was found to moderately improve thermal throttling, GPU clock speeds, memory latency, and memory bandwidth when tested in a commercial product, the Xiaomi Mi Note Pro.[116][117] Additionally, the 820/821, 835 and 845 performed substantially better.[118][119][120] The Snapdragon 865's memory was improved in a later update.[121] A 2019 benchmark test by PC World found that the 865's multi-core performance on the "default" setting was 30 percent higher than the 855 and comparable to the 855 Plus.[122] The benchmark score for Snapdragon 888 released in 2021 is higher than that of the existing Snapdragon 865 Plus and Apple A13, but the heat output has increased by 60 percent.[
