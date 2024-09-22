@@ -9,6 +9,7 @@ from pymilvus import (
     WeightedRanker,
     RRFRanker
 )
+
 from langchain_core.retrievers import BaseRetriever
 from langchain_core.documents import Document
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
@@ -96,7 +97,7 @@ class StandardRetriever(BaseRetriever):
         return self._retrieve_dense_documents(query)
 
 
-class CustomHybridRetriever(BaseRetriever):
+class HybridRetriever(BaseRetriever):
     """Custom retriever to retrieve documents using both dense and sparse embeddings."""
 
     collection: Collection = Field(...)

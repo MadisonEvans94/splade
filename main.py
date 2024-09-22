@@ -7,7 +7,8 @@ from langchain_milvus.retrievers import MilvusCollectionHybridSearchRetriever
 from tqdm import tqdm
 from retrievers import SpladeSparseEmbedding
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from retrievers import CustomHybridRetriever, StandardRetriever
+from langchain_milvus.retrievers import MilvusCollectionHybridSearchRetriever as HybridRetriever
+from retrievers import StandardRetriever
 from langchain_milvus.utils.sparse import BaseSparseEmbedding, BM25SparseEmbedding
 from pymilvus import (
     Collection,
@@ -110,14 +111,23 @@ def setup_chain(hybrid: bool):
     if hybrid:
         logging.info("Running in hybrid retrieval mode.")
         # Use the custom hybrid retriever
-        retriever = CustomHybridRetriever(
+        # retriever = HybridRetriever(
+        #     collection=collection,
+        #     dense_field=dense_field,
+        #     sparse_field=sparse_field,
+        #     top_k=TOP_K,
+        #     embeddings_model=dense_embedding_func,
+        #     sparse_embeddings_model=sparse_embedding_func,
+        #     ratio=[0.5, 0.5]  # Adjust this ratio as needed
+        # )
+        retriever = HybridRetriever(
             collection=collection,
-            dense_field=dense_field,
-            sparse_field=sparse_field,
-            top_k=TOP_K,
-            embeddings_model=dense_embedding_func,
-            sparse_embeddings_model=sparse_embedding_func,
-            ratio=[0.5, 0.5]  # Adjust this ratio as needed
+            rerank=WeightedRanker(0.5, 0.5),
+            anns_fields=[dense_field, sparse_field],
+            field_embeddings=[dense_embedding_func, sparse_embedding_func],
+            field_search_params=[dense_search_params, sparse_search_params],
+            top_k=3,
+            text_field=text_field,
         )
     else:
         logging.info("Running in dense-only retrieval mode.")
