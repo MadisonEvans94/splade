@@ -25,8 +25,15 @@ from ragas.metrics import (
 )
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from ragas import evaluate
-# Connect to Milvus
-connections.connect(**CONNECTION_ARGS)
+from dotenv import load_dotenv
+import nltk
+# To clear the previously loaded environment variables
+# Replace with the name of the stale variable
+os.environ.pop("OPENAI_API_KEY", None)
+
+nltk.download('punkt')
+
+load_dotenv()
 
 df = pd.read_csv('testset.csv')
 questions: List[str] = df['question'].to_list()
@@ -252,17 +259,3 @@ if __name__ == "__main__":
     main()
 
     
-    
-# for question in questions: 
-#     # run rag and append to contexts list and answers list 
-#     try:
-#         # Invoke the RetrievalQA to get the answer
-#         qa_chain = setup_chain(hybrid=True)
-#         response = qa_chain.invoke({"query": question})
-#         logging.info(f"\n\nBot: \n{response['result']}\n")
-#         answers.append(response['result'])
-#     except Exception as e:
-#         logging.error(f"Error generating response: {e}")
-#         continue
-#     pass
-

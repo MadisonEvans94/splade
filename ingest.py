@@ -15,6 +15,10 @@ from pymilvus import model
 import nltk
 
 
+# To clear the previously loaded environment variables
+# Replace with the name of the stale variable
+os.environ.pop("OPENAI_API_KEY", None)
+
 nltk.download('punkt')
 
 load_dotenv()
@@ -172,8 +176,8 @@ def insert_embeddings(dense_embeddings, sparse_embeddings, combined_embeddings, 
     collection.load()
 
 
-# @click.command()
-# @click.option('--hybrid', is_flag=True, help="Use BM25 for sparse embeddings.")
+@click.command()
+@click.option('--hybrid', is_flag=True, help="Use BM25 for sparse embeddings.")
 def main(hybrid):
     source_dir = "./SOURCE_DOCUMENTS"
     documents = load_documents(source_dir)

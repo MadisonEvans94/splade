@@ -41,6 +41,8 @@ services:
     depends_on:
       - "etcd"
       - "minio"
+    security_opt:
+      - seccomp:unconfined
 
 networks:
   default:

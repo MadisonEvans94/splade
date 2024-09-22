@@ -11,12 +11,16 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from ragas.testset.generator import TestsetGenerator
 from ragas.testset.evolutions import simple, reasoning, multi_context
 
+# To clear the previously loaded environment variables
+# Replace with the name of the stale variable
+os.environ.pop("OPENAI_API_KEY", None)
+
 # Load environment variables
 load_dotenv()
 
 # Set your OpenAI API key
 api_key = os.getenv("OPENAI_API_KEY")
-
+print(api_key)
 # Initialize ChatOpenAI with your API key
 chat_model = ChatOpenAI(
     openai_api_key=api_key,
@@ -80,8 +84,8 @@ def main():
 
     logging.info("Generating testset...")
     # generate testset
-    testset = generator.generate_with_langchain_docs(documents, test_size=20, distributions={
-                                                    simple: 0.4, reasoning: 0.3, multi_context: 0.3})
+    testset = generator.generate_with_langchain_docs(documents, test_size=4, distributions={
+                                                    simple: 0.5, reasoning: 0.25, multi_context: 0.25})
 
     df = testset.to_pandas()
     print(df)
