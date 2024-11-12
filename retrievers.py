@@ -1,12 +1,11 @@
-import logging
+
 from pydantic import Field
 from typing import Dict, List
-from langchain_milvus.utils.sparse import BaseSparseEmbedding, BM25SparseEmbedding
+from langchain_milvus.utils.sparse import BaseSparseEmbedding
 from langchain.embeddings.base import Embeddings
 from pymilvus import (
     AnnSearchRequest,
     Collection,
-    WeightedRanker,
     RRFRanker
 )
 

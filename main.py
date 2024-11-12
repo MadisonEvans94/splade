@@ -1,23 +1,17 @@
 import os
 import logging
-from typing import Any, List
-from langchain_core.output_parsers import StrOutputParser
+from typing import List
 from langchain_core.prompts import PromptTemplate
-from langchain_milvus.retrievers import MilvusCollectionHybridSearchRetriever
 from tqdm import tqdm
+from agents import build_agent_graph
 from retrievers import SpladeSparseEmbedding
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_milvus.retrievers import MilvusCollectionHybridSearchRetriever as HybridRetriever
 from retrievers import StandardRetriever
-from langchain_milvus import Milvus
-from langchain_milvus.utils.sparse import BaseSparseEmbedding, BM25SparseEmbedding
+from langchain_milvus.utils.sparse import BM25SparseEmbedding
 from pymilvus import (
     
     Collection,
-    CollectionSchema,
-    DataType,
-    FieldSchema,
-    WeightedRanker,
     RRFRanker,
     connections,
 )
@@ -25,11 +19,11 @@ from langchain.memory import ConversationBufferWindowMemory
 from constants import COLLECTION_NAME, CONNECTION_ARGS
 import click
 from retrievers import StandardRetriever
-from langchain.chains import RetrievalQA
+from langchain.chains.retrieval_qa.base import RetrievalQA
 
 TOP_K = 2
 EXIT_COMMAND = 'exit'
-CONV_HISTORY_SIZE = 5  # Example size of conversation memory buffer
+CONV_HISTORY_SIZE = 5 
 
 # Configure logging
 logging.basicConfig(level=logging.INFO,
@@ -113,16 +107,7 @@ memory = ConversationBufferWindowMemory(
 def setup_chain(hybrid: bool):
     if hybrid:
         logging.info("Running in hybrid retrieval mode.")
-        # Use the custom hybrid retriever
-        # retriever = HybridRetriever(
-        #     collection=collection,
-        #     dense_field=dense_field,
-        #     sparse_field=sparse_field,
-        #     top_k=TOP_K,
-        #     embeddings_model=dense_embedding_func,
-        #     sparse_embeddings_model=sparse_embedding_func,
-        #     ratio=[0.5, 0.5]  # Adjust this ratio as needed
-        # )
+
         retriever = HybridRetriever(
             collection=collection,
             rerank=RRFRanker(k=60),
@@ -200,14 +185,18 @@ def chatbot_loop(qa_chain: RetrievalQA):
 
 
 @click.command()
-@click.option('--hybrid', is_flag=True, help="Enable hybrid retrieval mode.")
-def main(hybrid):
-    qa_chain = setup_chain(hybrid)
-    try:
-        chatbot_loop(qa_chain)
-    except Exception as e:
-        logging.error(f"Error during retrieval: {e}")
+@click.option('--query', prompt="Enter your query", help="The query to send to the agent.")
+def run_agent(query):
+    # Build the agent graph
+    graph = build_agent_graph()
 
+    # Run the graph with the provided query
+    events = graph.stream(
+        {"messages": [("user", query)]}, stream_mode="values")
+    for event in events:
+        # Print the output of the agent's response
+        print(event["messages"][-1].content)
+        
 
 if __name__ == "__main__":
-    main()
+    run_agent()
