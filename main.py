@@ -4,15 +4,12 @@ import os
 import logging
 from typing import List
 from tqdm import tqdm
-from agents import build_agent_graph
-from retrievers import SpladeSparseEmbedding
+from agents import AgentFactory
 from langchain_openai import OpenAIEmbeddings
 from langchain_milvus.utils.sparse import BM25SparseEmbedding
 from pymilvus import Collection, connections
 from constants import COLLECTION_NAME, CONNECTION_ARGS
 from langchain.schema import HumanMessage, AIMessage
-
-TOP_K = 2
 EXIT_COMMAND = 'exit'
 
 # Configure logging
@@ -31,32 +28,39 @@ collection = Collection(COLLECTION_NAME)
 # Get corpus
 
 
-def get_corpus(collection: Collection) -> List[str]:
+def get_corpus(collection: Collection):
     results = collection.query(expr="pk != ''", output_fields=["text"])
     corpus = [doc["text"] for doc in tqdm(results, desc="fitting bm25 model")]
     return corpus
 
 
 corpus = get_corpus(collection)
-sparse_embedding_type = "BM25"
-if sparse_embedding_type == "SPLADE":
-    logging.info("Using SPLADE sparse embeddings.")
-    sparse_embedding_func = SpladeSparseEmbedding()
-else:
-    logging.info("Using BM25 sparse embeddings.")
-    sparse_embedding_func = BM25SparseEmbedding(corpus)
 
+# Initialize embedding functions
+sparse_embedding_func = BM25SparseEmbedding(corpus)
 dense_embedding_func = OpenAIEmbeddings(
     openai_api_key=OPENAI_API_KEY, model="text-embedding-ada-002"
 )
 
-# Define fields and collection
+# Define field names
 dense_field = "dense_vector"
 sparse_field = "sparse_vector"
 text_field = "text"
 
-# Build the agent graph once at the start
-graph = build_agent_graph()
+# Instantiate the AgentFactory
+agent_factory = AgentFactory(
+    collection=collection,
+    dense_embedding_func=dense_embedding_func,
+    sparse_embedding_func=sparse_embedding_func,
+    dense_field=dense_field,
+    sparse_field=sparse_field,
+    text_field=text_field,
+    OPENAI_API_KEY=OPENAI_API_KEY
+)
+
+# Build the desired agent
+# For a knowledgebase routing agent
+graph = agent_factory.create_knowledgebase_routing_agent()
 
 
 def chatbot_loop():
@@ -76,9 +80,7 @@ def chatbot_loop():
 
         # Run the agent graph with the current conversation history
         try:
-            # Create the initial state with the conversation history
             state = {"messages": messages.copy()}
-            # Run the graph
             events = graph.stream(state, stream_mode="values")
             for event in events:
                 if "messages" in event:
