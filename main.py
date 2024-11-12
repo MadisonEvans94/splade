@@ -10,6 +10,7 @@ from langchain_milvus.utils.sparse import BM25SparseEmbedding
 from pymilvus import Collection, connections
 from constants import COLLECTION_NAME, CONNECTION_ARGS
 from langchain.schema import HumanMessage, AIMessage
+
 EXIT_COMMAND = 'exit'
 
 # Configure logging
@@ -58,9 +59,9 @@ agent_factory = AgentFactory(
     OPENAI_API_KEY=OPENAI_API_KEY
 )
 
-# Build the desired agent
-# For a knowledgebase routing agent
-graph = agent_factory.create_knowledgebase_routing_agent()
+# Build the desired agent using the factory method
+agent_type = 'knowledgebase_router'  # or 'simple_llm', etc.
+graph = agent_factory.factory(agent_type)
 
 
 def chatbot_loop():
@@ -81,11 +82,12 @@ def chatbot_loop():
         # Run the agent graph with the current conversation history
         try:
             state = {"messages": messages.copy()}
-            events = graph.stream(state, stream_mode="values")
-            for event in events:
-                if "messages" in event:
+            events = list(graph.stream(state, stream_mode="values"))
+            if events:
+                final_event = events[-1]
+                if "messages" in final_event:
                     # Get the last AI message
-                    ai_message = event["messages"][-1]
+                    ai_message = final_event["messages"][-1]
                     # Append AI message to conversation history
                     if isinstance(ai_message, AIMessage):
                         messages.append(ai_message)
@@ -94,6 +96,10 @@ def chatbot_loop():
                     else:
                         logging.error(
                             "Received an unexpected message type from the agent.")
+                else:
+                    logging.error("No messages returned from the agent.")
+            else:
+                logging.error("No events returned from the agent.")
         except Exception as e:
             logging.error(f"Error generating response: {e}")
             continue

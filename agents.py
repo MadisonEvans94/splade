@@ -63,6 +63,15 @@ class AgentFactory:
         self.text_field = text_field
         self.OPENAI_API_KEY = OPENAI_API_KEY
 
+    def factory(self, agent_type: str):
+        """Factory method to create agents based on the agent_type string."""
+        if agent_type == 'knowledgebase_router':
+            return self.create_knowledgebase_routing_agent()
+        elif agent_type == 'simple_llm':
+            return self.create_simple_llm_agent()
+        else:
+            raise ValueError(f"Unknown agent type: {agent_type}")
+
     def create_knowledgebase_routing_agent(self):
         # Define the State for the agent
         class State(TypedDict):
@@ -158,8 +167,6 @@ class AgentFactory:
         # Compile and return the graph
         return graph_builder.compile()
 
-    # You can define additional methods to create other types of agents
-    # For example:
     def create_simple_llm_agent(self):
         class State(TypedDict):
             messages: Annotated[list, add_messages]
