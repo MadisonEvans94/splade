@@ -1,15 +1,15 @@
 # main.py
 
-import os
 import logging
-from typing import List
-from tqdm import tqdm
-from agents import AgentFactory
-from langchain_openai import OpenAIEmbeddings
-from langchain_milvus.utils.sparse import BM25SparseEmbedding
+
 from pymilvus import Collection, connections
+from agents.agent_factory import AgentFactory
 from constants import COLLECTION_NAME, CONNECTION_ARGS
 from langchain.schema import HumanMessage, AIMessage
+import os
+from tqdm import tqdm
+from langchain_milvus.utils.sparse import BM25SparseEmbedding
+from langchain_openai import OpenAIEmbeddings
 
 EXIT_COMMAND = 'exit'
 
@@ -49,19 +49,22 @@ sparse_field = "sparse_vector"
 text_field = "text"
 
 # Instantiate the AgentFactory
-agent_factory = AgentFactory(
-    collection=collection,
-    dense_embedding_func=dense_embedding_func,
-    sparse_embedding_func=sparse_embedding_func,
-    dense_field=dense_field,
-    sparse_field=sparse_field,
-    text_field=text_field,
-    OPENAI_API_KEY=OPENAI_API_KEY
-)
+factory_kwargs = {
+    'collection': collection,
+    'dense_embedding_func': dense_embedding_func,
+    'sparse_embedding_func': sparse_embedding_func,
+    'dense_field': dense_field,
+    'sparse_field': sparse_field,
+    'text_field': text_field,
+    'OPENAI_API_KEY': OPENAI_API_KEY
+}
+
+agent_factory = AgentFactory(**factory_kwargs)
 
 # Build the desired agent using the factory method
 agent_type = 'knowledgebase_router'  # or 'simple_llm', etc.
-graph = agent_factory.factory(agent_type)
+agent = agent_factory.factory(agent_type)
+graph = agent.build_graph()
 
 
 def chatbot_loop():

@@ -1,60 +1,19 @@
-# agents.py
+# knowledgebase_agent.py
 
 import logging
 from typing import Annotated, TypedDict
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage, AIMessage
-from pymilvus import connections, Collection
-import os
-from langchain_milvus.utils.sparse import BM25SparseEmbedding
-from constants import CONNECTION_ARGS, COLLECTION_NAME
+
+from .base_agent import Agent
 from retrievers import HybridRetriever
 
-# Configure logging
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Connect to Milvus
-connections.connect(**CONNECTION_ARGS)
-
-# Instantiate the collection
-collection = Collection(COLLECTION_NAME)
-
-# Load environment variables
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
-# Define the dense embedding function
-dense_embedding_func = OpenAIEmbeddings(
-    openai_api_key=OPENAI_API_KEY, model="text-embedding-ada-002"
-)
-
-# Function to get corpus from the collection
-
-
-def get_corpus(collection: Collection):
-    results = collection.query(expr="pk != ''", output_fields=["text"])
-    corpus = [doc["text"] for doc in results]
-    return corpus
-
-
-# Get the corpus
-corpus = get_corpus(collection)
-
-# Initialize the sparse embedding function
-sparse_embedding_func = BM25SparseEmbedding(corpus)
-
-# Define field names
-dense_field = "dense_vector"
-sparse_field = "sparse_vector"
-text_field = "text"
-
-# Define the AgentFactory class
-
-
-class AgentFactory:
-    def __init__(self, collection, dense_embedding_func, sparse_embedding_func, dense_field, sparse_field, text_field, OPENAI_API_KEY):
+class KnowledgebaseRoutingAgent(Agent):
+    def __init__(self, collection, dense_embedding_func, sparse_embedding_func,
+                 dense_field, sparse_field, text_field, OPENAI_API_KEY):
         self.collection = collection
         self.dense_embedding_func = dense_embedding_func
         self.sparse_embedding_func = sparse_embedding_func
@@ -63,16 +22,7 @@ class AgentFactory:
         self.text_field = text_field
         self.OPENAI_API_KEY = OPENAI_API_KEY
 
-    def factory(self, agent_type: str):
-        """Factory method to create agents based on the agent_type string."""
-        if agent_type == 'knowledgebase_router':
-            return self.create_knowledgebase_routing_agent()
-        elif agent_type == 'simple_llm':
-            return self.create_simple_llm_agent()
-        else:
-            raise ValueError(f"Unknown agent type: {agent_type}")
-
-    def create_knowledgebase_routing_agent(self):
+    def build_graph(self) -> StateGraph:
         # Define the State for the agent
         class State(TypedDict):
             messages: Annotated[list, add_messages]
@@ -84,7 +34,7 @@ class AgentFactory:
             content = last_message.content if isinstance(
                 last_message, HumanMessage) else last_message
 
-            # TODO: Implement semantic routing logic here
+            # Implement semantic routing logic here
             use_rag = "cpu" in content.lower()
             if use_rag:
                 logging.info("RAG is triggered based on the query.")
@@ -165,27 +115,4 @@ class AgentFactory:
         graph_builder.add_edge("rag", END)
 
         # Compile and return the graph
-        return graph_builder.compile()
-
-    def create_simple_llm_agent(self):
-        class State(TypedDict):
-            messages: Annotated[list, add_messages]
-
-        def llm_node(state: State):
-            logging.info("Executing simple LLM agent.")
-            llm = ChatOpenAI(openai_api_key=self.OPENAI_API_KEY,
-                             model="gpt-3.5-turbo")
-            messages = state["messages"]
-            if not all(isinstance(msg, HumanMessage) for msg in messages):
-                messages = [HumanMessage(content=str(msg)) for msg in messages]
-            response = llm.invoke(messages)
-            logging.info("LLM response completed.")
-            if not isinstance(response, AIMessage):
-                response = AIMessage(content=response.content)
-            return {"messages": [response]}
-
-        graph_builder = StateGraph(State)
-        graph_builder.add_node("llm", llm_node)
-        graph_builder.add_edge(START, "llm")
-        graph_builder.add_edge("llm", END)
         return graph_builder.compile()
