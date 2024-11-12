@@ -148,3 +148,6 @@ class HybridRetriever(BaseRetriever):
             for hits in results for hit in hits
         ]
         return documents
+
+    def retrieve(self, query: str) -> List[Document]:
+        return self._get_relevant_documents(query)

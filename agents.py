@@ -1,16 +1,20 @@
 # agents.py
 
+import logging
 from typing import Annotated, TypedDict
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain.schema import HumanMessage, AIMessage
 from pymilvus import connections, Collection
 import os
 from langchain_milvus.utils.sparse import BM25SparseEmbedding
-# Import constants
 from constants import CONNECTION_ARGS, COLLECTION_NAME
-# Import from your retrievers.py
 from retrievers import HybridRetriever
+
+# Configure logging
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Connect to Milvus
 connections.connect(**CONNECTION_ARGS)
@@ -30,7 +34,6 @@ dense_embedding_func = OpenAIEmbeddings(
 
 
 def get_corpus(collection: Collection):
-    # Fetch all documents with a query expression matching any valid pk
     results = collection.query(expr="pk != ''", output_fields=["text"])
     corpus = [doc["text"] for doc in results]
     return corpus
@@ -59,23 +62,22 @@ class State(TypedDict):
 
 def check_for_rag(state: State):
     last_message = state["messages"][-1]
-    content = last_message if isinstance(
-        last_message, str) else last_message.content
-    return {"use_rag": "cpu" in content.lower()}
+    content = last_message.content if isinstance(
+        last_message, HumanMessage) else last_message
+    use_rag = "cpu" in content.lower()
+    if use_rag:
+        logging.info("RAG is triggered based on the query.")
+    else:
+        logging.info("Normal LLM invocation will be used.")
+    return {"use_rag": use_rag}
 
 # LLM node for direct LLM invocation
-
-
-def llm_node(state: State):
-    llm = ChatOpenAI(openai_api_key=OPENAI_API_KEY, model="gpt-3.5-turbo")
-    messages = state["messages"]
-    response = llm.invoke(messages)
-    return {"messages": [response]}
 
 # RAG retrieval node
 
 
 def rag_node(state: State):
+    logging.info("Executing RAG node with document retrieval.")
     retriever = HybridRetriever(
         collection=collection,
         dense_field=dense_field,
@@ -85,17 +87,42 @@ def rag_node(state: State):
         sparse_embeddings_model=sparse_embedding_func,
     )
     last_message = state["messages"][-1]
-    query = last_message if isinstance(
-        last_message, str) else last_message.content
-    # Retrieve documents
-    docs = retriever.get_relevant_documents(query)
+    query = last_message.content if isinstance(
+        last_message, HumanMessage) else str(last_message)
+    # Ensure query is a string
+    if not isinstance(query, str):
+        query = str(query)
+    # Retrieve documents using retrieve method
+    docs = retriever.retrieve(query)
+    logging.info(f"Retrieved {len(docs)} documents for RAG processing.")
     # Combine retrieved documents into context
     context = "\n\n".join([doc.page_content for doc in docs])
     # Create a prompt with the retrieved context
     prompt = f"Use the following context to answer the question:\n\n{context}\n\nQuestion: {query}\nAnswer:"
     llm = ChatOpenAI(openai_api_key=OPENAI_API_KEY, model="gpt-3.5-turbo")
-    response = llm.invoke(prompt)
+    response = llm.invoke([HumanMessage(content=prompt)])
+    logging.info("RAG response completed.")
+    if not isinstance(response, AIMessage):
+        response = AIMessage(content=response.content)
     return {"messages": [response]}
+
+# LLM node for direct LLM invocation
+
+
+def llm_node(state: State):
+    logging.info("Executing LLM node for direct response.")
+    llm = ChatOpenAI(openai_api_key=OPENAI_API_KEY, model="gpt-3.5-turbo")
+    messages = state["messages"]
+    # Ensure messages are properly formatted as a list of HumanMessage instances
+    if not all(isinstance(msg, HumanMessage) for msg in messages):
+        messages = [HumanMessage(content=str(msg)) for msg in messages]
+    response = llm.invoke(messages)
+    logging.info("LLM response completed.")
+    if not isinstance(response, AIMessage):
+        response = AIMessage(content=response.content)
+    return {"messages": [response]}
+
+
 
 # Create the graph
 
