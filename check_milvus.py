@@ -1,4 +1,4 @@
-from pymilvus import connections, Collection, utility
+from pymilvus import connections, Collection, utility, MilvusClient
 from pprint import pprint
 from constants import CONNECTION_ARGS
 

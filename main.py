@@ -9,13 +9,16 @@ from retrievers import SpladeSparseEmbedding
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_milvus.retrievers import MilvusCollectionHybridSearchRetriever as HybridRetriever
 from retrievers import StandardRetriever
+from langchain_milvus import Milvus
 from langchain_milvus.utils.sparse import BaseSparseEmbedding, BM25SparseEmbedding
 from pymilvus import (
+    
     Collection,
     CollectionSchema,
     DataType,
     FieldSchema,
     WeightedRanker,
+    RRFRanker,
     connections,
 )
 from langchain.memory import ConversationBufferWindowMemory
@@ -24,7 +27,7 @@ import click
 from retrievers import StandardRetriever
 from langchain.chains import RetrievalQA
 
-TOP_K = 5
+TOP_K = 2
 EXIT_COMMAND = 'exit'
 CONV_HISTORY_SIZE = 5  # Example size of conversation memory buffer
 
@@ -122,7 +125,7 @@ def setup_chain(hybrid: bool):
         # )
         retriever = HybridRetriever(
             collection=collection,
-            rerank=WeightedRanker(0.5, 0.5),
+            rerank=RRFRanker(k=60),
             anns_fields=[dense_field, sparse_field],
             field_embeddings=[dense_embedding_func, sparse_embedding_func],
             field_search_params=[dense_search_params, sparse_search_params],

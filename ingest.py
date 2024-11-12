@@ -53,9 +53,6 @@ def create_collection(collection_name):
             FieldSchema(name="text", dtype=DataType.VARCHAR, max_length=8192),
             FieldSchema(name="filename",
                         dtype=DataType.VARCHAR, max_length=256),
-            # Store only the processed content embedding
-            FieldSchema(name="processed_content_embedding",
-                        dtype=DataType.FLOAT_VECTOR, dim=VECTOR_DIM)
         ]
 
         schema = CollectionSchema(
@@ -92,7 +89,11 @@ def preprocess_documents(texts: List[Tuple[str, str]]) -> List[Tuple[str, str]]:
     Splits documents into chunks and combines with the preamble.
     """
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000, chunk_overlap=100)
+        # Priority order of where to split
+        separators=["\n\n", ".", "!", "?", ",", " ", ""],
+        chunk_size=1000,  # Max chunk size
+        chunk_overlap=100  # Overlap between chunks to maintain context
+    )
     chunks = []
     for filename, text in tqdm(texts, desc="Splitting documents"):
         split_texts = splitter.split_text(text)
@@ -101,12 +102,12 @@ def preprocess_documents(texts: List[Tuple[str, str]]) -> List[Tuple[str, str]]:
     return chunks
 
 
-def generate_combined_embeddings(chunks: List[Tuple[str, str]], embeddings_model) -> List:
+def generate_dense_embeddings(chunks: List[Tuple[str, str]], embeddings_model) -> List:
     """
     Generates and caches embeddings for combined preamble + content.
     """
     processed_contents = [chunk[1]
-                          for chunk in chunks]  # Extract combined content
+                          for chunk in chunks] 
     embeddings = embeddings_model.embed_documents(
         processed_contents)  # Embed combined content
     return embeddings
@@ -133,13 +134,13 @@ def generate_sparse_embeddings(chunks: List[Tuple[str, str]]):
     return sparse_embeddings
 
 
-def insert_embeddings(dense_embeddings, sparse_embeddings, combined_embeddings, chunks, collection_name):
+def insert_embeddings(dense_embeddings, sparse_embeddings, chunks, collection_name):
     """
     Inserts embeddings and additional fields into the Milvus collection.
     """
     collection = create_collection(collection_name)
 
-    num_embeddings = len(combined_embeddings)
+    num_embeddings = len(dense_embeddings)
     ids = [str(uuid.uuid4()) for _ in range(num_embeddings)]
     filenames = [chunk[0] for chunk in chunks]  # Extract filename part
     # Original processed content for reference
@@ -151,8 +152,7 @@ def insert_embeddings(dense_embeddings, sparse_embeddings, combined_embeddings, 
         dense_embeddings,
         sparse_embeddings,
         texts,
-        filenames,
-        combined_embeddings  # Processed content embeddings
+        filenames
     ]
 
     output = collection.insert(data_to_insert)
@@ -162,14 +162,13 @@ def insert_embeddings(dense_embeddings, sparse_embeddings, combined_embeddings, 
 
     dense_index = {"index_type": "FLAT", "metric_type": "IP"}
     sparse_index = {"index_type": "SPARSE_INVERTED_INDEX", "metric_type": "IP"}
-    processed_content_index = {"index_type": "FLAT", "metric_type": "IP"}
+
 
     collection.create_index(field_name="dense_vector",
                             index_params=dense_index)
     collection.create_index(field_name="sparse_vector",
                             index_params=sparse_index)
-    collection.create_index(field_name="processed_content_embedding",
-                            index_params=processed_content_index)
+
     logging.info(
         f"Indexes created on fields 'dense_vector', 'sparse_vector', and 'processed_content_embedding' for collection '{collection_name}'.")
 
@@ -187,7 +186,7 @@ def main(hybrid):
     # Generate dense embeddings for content + preamble
     embeddings_model = OpenAIEmbeddings(
         openai_api_key=OPENAI_API_KEY, model="text-embedding-ada-002")
-    combined_embeddings = generate_combined_embeddings(
+    dense_embeddings = generate_dense_embeddings(
         chunks, embeddings_model)
 
     # Generate sparse embeddings based on user preference
@@ -195,8 +194,8 @@ def main(hybrid):
         # sparse_embeddings = generate_sparse_embeddings(chunks, use_bm25=True)
     sparse_embeddings = generate_sparse_embeddings(chunks)
     collection_name = COLLECTION_NAME
-    insert_embeddings(combined_embeddings, sparse_embeddings,
-                      combined_embeddings, chunks, collection_name)
+    insert_embeddings(dense_embeddings, sparse_embeddings,
+                      chunks, collection_name)
 
 
 if __name__ == "__main__":

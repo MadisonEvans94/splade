@@ -1,14 +1,21 @@
+import json
 import os
 import pprint
 from typing import Tuple
 import click
 from pymilvus import (
     Collection,
+    CollectionSchema,
+    DataType,
+    FieldSchema,
+    WeightedRanker,
+    RRFRanker,
     connections,
 )
 from tqdm import tqdm
 from constants import COLLECTION_NAME, CONNECTION_ARGS
-from retrievers import CustomHybridRetriever, SpladeSparseEmbedding, StandardRetriever
+from langchain_milvus.retrievers import MilvusCollectionHybridSearchRetriever as HybridRetriever
+from retrievers import StandardRetriever
 from langchain_milvus.utils.sparse import BaseSparseEmbedding, BM25SparseEmbedding
 import logging
 from langchain.chains import RetrievalQA
@@ -56,6 +63,12 @@ If you don't know the answer, just say that you don't know, don't try to make up
 Question: {question}
 Answer:
 """
+
+
+# Define the specific question and answer pair
+test_question = "What were the key findings regarding the models' performance on the multitask test, particularly concerning their knowledge application and subject-specific accuracy?"
+test_ground_truth = "The findings highlighted that while recent models like GPT-3 have made progress, they exhibit lopsided performance across different subjects, lack expert-level accuracy, and struggle with procedural knowledge and tasks requiring calculations."
+
 
 def get_corpus(collection: Collection) -> List[str]:
     # Fetch all documents with a query expression matching any valid pk
@@ -137,14 +150,26 @@ def setup_retriever(
 ) -> object:
     """Set up the retriever based on the retrieval mode."""
     if hybrid:
+
+        # Define fields and collection
+        pk_field = "pk"
+        dense_field = "dense_vector"
+        sparse_field = "sparse_vector"
+        text_field = "text"
+
+
+        # Define search parameters for dense and sparse fields
+        dense_search_params = {"metric_type": "IP", "params": {}}
+        sparse_search_params = {"metric_type": "IP"}
         logging.info("Running in hybrid retrieval mode.")
-        retriever = CustomHybridRetriever(
+        retriever = HybridRetriever(
             collection=collection,
-            dense_field=dense_field,
-            sparse_field=sparse_field,
+            rerank=RRFRanker(k=60),
+            anns_fields=[dense_field, sparse_field],
+            field_embeddings=[dense_embedding_func, sparse_embedding_func],
+            field_search_params=[dense_search_params, sparse_search_params],
             top_k=top_k,
-            embeddings_model=dense_embedding_func,
-            sparse_embeddings_model=sparse_embedding_func,
+            text_field=text_field,
         )
     else:
         logging.info("Running in dense-only retrieval mode.")
@@ -171,6 +196,27 @@ def setup_qa_chain(llm: ChatOpenAI, retriever: object, prompt: PromptTemplate) -
     return qa_chain
 
 
+def extract_questions_and_answers(filename, num_to_keep):
+    with open(filename, 'r') as file:
+        data = json.load(file)
+
+    questions = data.get("questions", [])
+    answers = data.get("ground_truths", [])
+
+    # Pair questions and answers, then shuffle and select the fraction
+    combined = list(zip(questions, answers))
+
+
+    # Slice the list to keep only the desired fraction
+    # selected = combined[:num_to_keep]
+    selected = combined
+
+    # Separate the questions and answers again
+    selected_questions, selected_answers = zip(
+        *selected) if selected else ([], [])
+
+    return list(selected_questions), list(selected_answers)
+
 @click.command()
 @click.option('--hybrid', is_flag=True, default=False, help="Use hybrid retrieval.")
 def main(hybrid): 
@@ -195,7 +241,9 @@ def main(hybrid):
     connect_to_milvus(CONNECTION_ARGS)
 
     # Load test data
-    questions, ground_truths = load_test_data('testset.csv')
+    # questions, ground_truths = extract_questions_and_answers('benchmark.json', 5)
+    questions = [test_question]
+    ground_truths = [test_ground_truth]
     
     # Initialize LLM
     llm = initialize_llm(OPENAI_API_KEY, "gpt-4o-mini")
@@ -234,7 +282,7 @@ def main(hybrid):
         context = [doc.page_content for doc in response['source_documents']]
         contexts.append(context)
         answers.append(answer)
-        
+            
     dataset = Dataset.from_dict({
         "question": questions,
         "contexts": contexts,
@@ -253,7 +301,7 @@ def main(hybrid):
         ],
     )
     result_df = result.to_pandas()
-    result_df.to_csv(f'eval_results_dataheavy_{EXT}.csv', index=False)
+    result_df.to_csv(f'eval_results_single_{EXT}.csv', index=False)
 
 if __name__ == "__main__":
     main()
