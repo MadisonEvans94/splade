@@ -2,11 +2,11 @@ from langchain_openai import ChatOpenAI
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain.memory import ConversationBufferMemory
 from langchain.schema import HumanMessage, AIMessage, BaseMessage
-from typing import List, Optional
+from typing import List
 import logging
 from langchain_core.chat_history import BaseChatMessageHistory
-from .base_agent import Agent  # Import the base Agent class
-from .llm_runnable import LLMRunnable  # Import LLMRunnable
+from .base_agent import Agent
+from .llm_runnable import LLMRunnable  
 
 
 class ConversationAgent(Agent):
@@ -35,10 +35,8 @@ class ConversationAgent(Agent):
         logging.info(
             "Executing ConversationAgent with RunnableWithMessageHistory.")
 
-        # Invoke the conversation with the input messages
         response = self.conversation.invoke(messages)
 
         logging.info("LLM response completed.")
 
-        # Return the final response as an AIMessage
         return AIMessage(content=response.content)

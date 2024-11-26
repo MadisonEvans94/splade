@@ -5,17 +5,20 @@ from typing import Dict, Type
 from agents.knowledgebase_routing_agent import KnowledgebaseRoutingAgent
 from agents.conversation_agent import ConversationAgent
 from agents.base_agent import Agent
+from agents.tool_calling_agent import ToolCallingAgent  # Import the new agent
 
 
 class AgentFactory:
     """
     A factory class responsible for creating agent instances based on the provided agent type.
     """
+
     def __init__(self, **kwargs):
         self.kwargs = kwargs
         self.agent_registry: Dict[str, Type[Agent]] = {
             'conversation_agent': ConversationAgent,
-            # Add new agents here
+            'tool_calling_agent': ToolCallingAgent,
+            # Add other agents here
         }
 
     def factory(self, agent_type: str) -> Agent:

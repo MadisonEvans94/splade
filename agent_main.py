@@ -1,7 +1,6 @@
 import os
 from dotenv import load_dotenv
 from langchain.schema import HumanMessage
-# Assuming your factory is in agents.agent_factory
 from agents.agent_factory import AgentFactory
 
 # Load environment variables
@@ -11,11 +10,11 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 # Initialize the AgentFactory with the OpenAI API key
 factory = AgentFactory(OPENAI_API_KEY=OPENAI_API_KEY)
 
-# Create a ConversationAgent using the factory
+# Create a ToolCallingAgent using the factory
 agent = factory.factory("conversation_agent")
 
 # Start the conversation loop
-print("Start chatting with the AI (type 'exit' to stop):")
+print("Start interacting with the agent (type 'exit' to stop):")
 messages = []
 
 while True:
