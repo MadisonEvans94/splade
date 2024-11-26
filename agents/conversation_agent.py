@@ -1,39 +1,35 @@
 from langchain_openai import ChatOpenAI
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain.memory import ConversationBufferMemory
-from langchain.schema import HumanMessage, AIMessage
+from langchain.schema import HumanMessage, AIMessage, BaseMessage
 from typing import List, Optional
 import logging
 from langchain_core.chat_history import BaseChatMessageHistory
-from langchain_core.runnables import Runnable
-from langchain.schema import BaseMessage
+from .base_agent import Agent  # Import the base Agent class
+from .llm_runnable import LLMRunnable  # Import LLMRunnable
 
 
-class LLMRunnable(Runnable):
-    def __init__(self, llm):
-        self.llm = llm
-
-    def invoke(self, input: List[BaseMessage], config: Optional[dict] = None, **kwargs) -> BaseMessage:
-        response = self.llm(input)
-        return response
-
-
-def get_session_history() -> BaseChatMessageHistory:
-    return ConversationBufferMemory().chat_memory
-
-
-class ConversationAgent:
+class ConversationAgent(Agent):
     def __init__(self, OPENAI_API_KEY: str):
         self.llm = ChatOpenAI(
             openai_api_key=OPENAI_API_KEY,
             model="gpt-3.5-turbo"
         )
 
+        # Initialize ConversationBufferMemory
+        self.memory = ConversationBufferMemory()
+
         self.conversation = RunnableWithMessageHistory(
             runnable=LLMRunnable(self.llm),
-            get_session_history=get_session_history,
+            get_session_history=self.get_session_history,
             verbose=True
         )
+
+    def get_session_history(self) -> BaseChatMessageHistory:
+        """
+        Returns the chat message history for the agent.
+        """
+        return self.memory.chat_memory
 
     def run(self, messages: List[HumanMessage]) -> AIMessage:
         logging.info(
