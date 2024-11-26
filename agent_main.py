@@ -1,24 +1,36 @@
 import os
 from dotenv import load_dotenv
-from langchain.schema import HumanMessage, AIMessage
-from agents.conversation_agent import SimpleLLMAgent
+from langchain.schema import HumanMessage
+# Assuming your factory is in agents.agent_factory
+from agents.agent_factory import AgentFactory
 
+# Load environment variables
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-# Initialize the agent with your OpenAI API key
-agent = SimpleLLMAgent(OPENAI_API_KEY=OPENAI_API_KEY)
+# Initialize the AgentFactory with the OpenAI API key
+factory = AgentFactory(OPENAI_API_KEY=OPENAI_API_KEY)
 
-# Prepare a list of human messages
-messages = [
-    HumanMessage(content="Hello, how are you?"),
-    HumanMessage(content="Can you tell me a joke?"), 
-    AIMessage(content="Hello! I'm doing well, thank you for asking. Here's a joke for you: Why did the scarecrow win an award? Because he was outstanding in his field!"),
-    HumanMessage(content="That's a good one! Can you tell me another joke?")
-]
+# Create a ConversationAgent using the factory
+agent = factory.factory("conversation_agent")
 
-# Run the agent
-response = agent.run(messages)
+# Start the conversation loop
+print("Start chatting with the AI (type 'exit' to stop):")
+messages = []
 
-# Print the AI's response
-print(response.content)
+while True:
+    user_input = input("You: ")
+    if user_input.lower() == 'exit':
+        break
+
+    # Add the user's message to the conversation
+    messages.append(HumanMessage(content=user_input))
+
+    # Run the agent with the messages
+    response = agent.run(messages)
+
+    # Add the AI's response to the conversation
+    messages.append(response)
+
+    # Print the AI's response
+    print(f"AI: {response.content}")

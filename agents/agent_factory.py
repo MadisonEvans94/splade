@@ -3,16 +3,18 @@
 import logging
 from typing import Dict, Type
 from agents.knowledgebase_routing_agent import KnowledgebaseRoutingAgent
-from agents.basic_qna_agent import SimpleLLMAgent
+from agents.conversation_agent import ConversationAgent
 from agents.base_agent import Agent
 
 
 class AgentFactory:
+    """
+    A factory class responsible for creating agent instances based on the provided agent type.
+    """
     def __init__(self, **kwargs):
         self.kwargs = kwargs
         self.agent_registry: Dict[str, Type[Agent]] = {
-            'knowledgebase_router': KnowledgebaseRoutingAgent,
-            'simple_llm': SimpleLLMAgent,
+            'conversation_agent': ConversationAgent,
             # Add new agents here
         }
 

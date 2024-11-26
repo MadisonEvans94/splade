@@ -1,34 +1,48 @@
 from langchain_openai import ChatOpenAI
-from langchain.chains import ConversationChain
+from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain.memory import ConversationBufferMemory
 from langchain.schema import HumanMessage, AIMessage
-from typing import List
+from typing import List, Optional
 import logging
+from langchain_core.chat_history import BaseChatMessageHistory
+from langchain_core.runnables import Runnable
+from langchain.schema import BaseMessage
 
 
-class SimpleLLMAgent:
+class LLMRunnable(Runnable):
+    def __init__(self, llm):
+        self.llm = llm
+
+    def invoke(self, input: List[BaseMessage], config: Optional[dict] = None, **kwargs) -> BaseMessage:
+        response = self.llm(input)
+        return response
+
+
+def get_session_history() -> BaseChatMessageHistory:
+    return ConversationBufferMemory().chat_memory
+
+
+class ConversationAgent:
     def __init__(self, OPENAI_API_KEY: str):
         self.llm = ChatOpenAI(
             openai_api_key=OPENAI_API_KEY,
             model="gpt-3.5-turbo"
         )
-        self.memory = ConversationBufferMemory()
-        self.conversation = ConversationChain(
-            llm=self.llm,
-            memory=self.memory,
+
+        self.conversation = RunnableWithMessageHistory(
+            runnable=LLMRunnable(self.llm),
+            get_session_history=get_session_history,
             verbose=True
         )
 
     def run(self, messages: List[HumanMessage]) -> AIMessage:
-        logging.info("Executing simple LLM agent with ConversationChain.")
+        logging.info(
+            "Executing ConversationAgent with RunnableWithMessageHistory.")
 
-        # Combine the messages into a single input string
-        input_text = "\n".join([msg.content for msg in messages])
-
-        # Get the response from the conversation chain
-        response = self.conversation.predict(input=input_text)
+        # Invoke the conversation with the input messages
+        response = self.conversation.invoke(messages)
 
         logging.info("LLM response completed.")
 
-        # Wrap the response in an AIMessage
-        return AIMessage(content=response)
+        # Return the final response as an AIMessage
+        return AIMessage(content=response.content)
