@@ -1,6 +1,7 @@
 from langchain_openai import ChatOpenAI
 from langchain.agents import create_tool_calling_agent, AgentExecutor
 from langchain_core.prompts import ChatPromptTemplate
+from langchain.schema import AIMessage
 
 from agents.tools.tool_registry import ToolRegistry
 
@@ -30,7 +31,7 @@ class WebSearchAgent:
         self.executor = AgentExecutor(
             agent=self.agent, tools=self.tools, verbose=True)
 
-    def run(self, input_text: str, chat_history: list = None):
+    def run(self, input_text: str, chat_history: list = None) -> AIMessage:
         """
         Run the agent with the given input text and optional chat history.
         """
@@ -38,4 +39,14 @@ class WebSearchAgent:
         if chat_history:
             input_data["chat_history"] = chat_history
 
-        return self.executor.invoke(input_data)
+        # Execute the agent
+        result = self.executor.invoke(input_data)
+
+        # Extract the output from the result dictionary
+        if isinstance(result, dict) and "output" in result:
+            response_content = result["output"]
+        else:
+            response_content = str(result)
+
+        # Wrap the output in an AIMessage
+        return AIMessage(content=response_content)
