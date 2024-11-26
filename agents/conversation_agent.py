@@ -6,7 +6,7 @@ from typing import List
 import logging
 from langchain_core.chat_history import BaseChatMessageHistory
 from .base_agent import Agent
-from .llm_runnable import LLMRunnable  
+from .llm_runnable import LLMRunnable
 
 
 class ConversationAgent(Agent):
@@ -16,7 +16,6 @@ class ConversationAgent(Agent):
             model="gpt-3.5-turbo"
         )
 
-        # Initialize ConversationBufferMemory
         self.memory = ConversationBufferMemory()
 
         self.conversation = RunnableWithMessageHistory(

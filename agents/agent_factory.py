@@ -1,28 +1,23 @@
-# agents.py
+# agents/agent_factory.py
 
-import logging
 from typing import Dict, Type
-from agents.knowledgebase_routing_agent import KnowledgebaseRoutingAgent
 from agents.conversation_agent import ConversationAgent
+from agents.graph_agent import GraphAgent
+from agents.web_search_agent import WebSearchAgent
+
 from agents.base_agent import Agent
-from agents.tool_calling_agent import ToolCallingAgent  # Import the new agent
 
 
 class AgentFactory:
-    """
-    A factory class responsible for creating agent instances based on the provided agent type.
-    """
-
     def __init__(self, **kwargs):
         self.kwargs = kwargs
         self.agent_registry: Dict[str, Type[Agent]] = {
             'conversation_agent': ConversationAgent,
-            'tool_calling_agent': ToolCallingAgent,
-            # Add other agents here
+            'web_search_agent': WebSearchAgent,
+            'graph_agent': GraphAgent,  # Register the new agent
         }
 
     def factory(self, agent_type: str) -> Agent:
-        """Factory method to create agents based on the agent_type string."""
         agent_class = self.agent_registry.get(agent_type)
         if agent_class is None:
             raise ValueError(f"Unknown agent type: {agent_type}")
