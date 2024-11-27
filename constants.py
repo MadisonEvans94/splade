@@ -13,3 +13,6 @@ INDEX_TYPE = "IVF_FLAT"  # Index type for Milvus, adjust based on your needs
 METRIC_TYPE = "L2"  # Metric type for similarity search, can be L2, IP, etc.
 PARTITION_TAG = "default_partition"  # Optional: Specify a partition tag
 
+TOP_K = 5
+EXIT_COMMAND = 'exit'
+CONV_HISTORY_SIZE = 5  # Example size of conversation memory buffer

@@ -28,9 +28,6 @@ logging.basicConfig(level=logging.INFO,
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-splade_ef = model.sparse.SpladeEmbeddingFunction(
-    model_name="naver/splade-cocondenser-ensembledistil", device="cpu")
-
 
 def connect_to_milvus():
     connections.connect(**CONNECTION_ARGS)
@@ -189,9 +186,6 @@ def main(hybrid):
     dense_embeddings = generate_dense_embeddings(
         chunks, embeddings_model)
 
-    # Generate sparse embeddings based on user preference
-    # if hybrid:
-        # sparse_embeddings = generate_sparse_embeddings(chunks, use_bm25=True)
     sparse_embeddings = generate_sparse_embeddings(chunks)
     collection_name = COLLECTION_NAME
     insert_embeddings(dense_embeddings, sparse_embeddings,
