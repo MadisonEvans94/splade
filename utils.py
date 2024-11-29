@@ -1,6 +1,5 @@
 # utils.py
 
-import os
 from typing import List
 from pymilvus import connections, Collection
 from tqdm import tqdm
@@ -9,7 +8,7 @@ from langchain_openai import OpenAIEmbeddings
 
 
 from constants import (
-    DENSE_FIELD, SPARSE_FIELD, TEXT_FIELD, TOP_K,
+    DENSE_FIELD, PROMPT, SPARSE_FIELD, TEXT_FIELD, TOP_K,
     DENSE_SEARCH_PARAMS, SPARSE_SEARCH_PARAMS
 )
 from langchain_milvus import MilvusCollectionHybridSearchRetriever
@@ -68,18 +67,12 @@ class ChainSetup:
                 embeddings_model=self.dense_embedding_func,
             )
 
-        contextualize_q_prompt = ChatPromptTemplate.from_messages(
-            [
-                ("system", "Reformulate the user's query to be independent of prior context."),
-                MessagesPlaceholder("chat_history"),
-                ("human", "{input}"),
-            ]
-        )
+    
 
         history_aware_retriever = create_history_aware_retriever(
             llm=self.llm,
             retriever=retriever,
-            prompt=contextualize_q_prompt,
+            prompt=PROMPT,
         )
 
         qa_prompt = ChatPromptTemplate.from_messages(

@@ -1,5 +1,4 @@
-# agent_main.py
-
+import json
 import logging
 import os
 from dotenv import load_dotenv
@@ -60,6 +59,20 @@ agent_executor = initialize_agent(
 )
 
 
+def serialize_message(message):
+    """Helper function to serialize HumanMessage and AIMessage objects."""
+    return {
+        "content": message.content,
+        "additional_kwargs": message.additional_kwargs,
+        "response_metadata": getattr(message, "response_metadata", {})
+    }
+
+
+def serialize_chat_history(chat_history):
+    """Helper function to serialize chat history containing messages."""
+    return [serialize_message(msg) for msg in chat_history]
+
+
 def chatbot_loop(agent_executor):
     print("Welcome to the Chatbot! Type 'exit' to end the conversation.\n")
     while True:
@@ -72,11 +85,23 @@ def chatbot_loop(agent_executor):
         try:
             logging.info(f"User input: {user_input}")
             response = agent_executor.invoke(input=user_input)
-            logging.info(f"Agent response: {response}")
-            print(f"\n\nBot: \n{response}\n")
+
+            # Pretty-print the response if it's a dictionary
+            if isinstance(response, dict):
+                if "chat_history" in response:
+                    response["chat_history"] = serialize_chat_history(
+                        response["chat_history"])
+                logging.info(
+                    f"Agent response:\n{json.dumps(response, indent=4)}")
+                print(f"\n\nBot: \n{response['output']}\n")
+            else:
+                logging.info(f"Agent response: {response}")
+                print(f"\n\nBot: \n{response}\n")
+
         except Exception as e:
             logging.error("Error generating response", exc_info=True)
             continue
+
 
 
 if __name__ == "__main__":

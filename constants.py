@@ -1,3 +1,5 @@
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+
 # constants.py
 
 CONNECTION_ARGS = {
@@ -26,3 +28,11 @@ TEXT_FIELD = "text"
 # Define search parameters for dense and sparse fields
 DENSE_SEARCH_PARAMS = {"metric_type": "IP", "params": {}}
 SPARSE_SEARCH_PARAMS = {"metric_type": "IP"}
+
+PROMPT = ChatPromptTemplate.from_messages(
+    [
+        ("system", "Reformulate the user's query to be independent of prior context."),
+        MessagesPlaceholder("chat_history"),
+        ("human", "{input}"),
+    ]
+)
