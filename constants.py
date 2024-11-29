@@ -16,3 +16,13 @@ PARTITION_TAG = "default_partition"  # Optional: Specify a partition tag
 TOP_K = 5
 EXIT_COMMAND = 'exit'
 CONV_HISTORY_SIZE = 5  # Example size of conversation memory buffer
+
+# Define fields and collection
+PK_FIELD = "pk"
+DENSE_FIELD = "dense_vector"
+SPARSE_FIELD = "sparse_vector"
+TEXT_FIELD = "text"
+
+# Define search parameters for dense and sparse fields
+DENSE_SEARCH_PARAMS = {"metric_type": "IP", "params": {}}
+SPARSE_SEARCH_PARAMS = {"metric_type": "IP"}
