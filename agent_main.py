@@ -4,7 +4,9 @@ import os
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
+from langchain.schema import HumanMessage, AIMessage
 from langchain.agents import initialize_agent, AgentType
+from agents.rag_agent import RAGAgent
 from agents.tools.rag_tool import RAGTool
 from utils import ChainSetup
 from constants import (
@@ -49,38 +51,11 @@ rag_tool = RAGTool(chain=retrieval_chain, memory=memory)
 # Add the tool to the agent
 tools = [rag_tool]
 
-
-def initialize_rag_agent(llm, tools, memory):
-    """Function to initialize the RAG agent."""
-    agent_executor = initialize_agent(
-        tools=tools,
-        llm=llm,
-        agent=AgentType.CHAT_CONVERSATIONAL_REACT_DESCRIPTION,
-        memory=memory,
-        verbose=True,
-    )
-    return agent_executor
+# Initialize the RAG agent
+agent = RAGAgent(llm=llm, tools=tools, memory=memory)
 
 
-# Initialize the agent
-agent_executor = initialize_rag_agent(llm, tools, memory)
-
-
-def serialize_message(message):
-    """Helper function to serialize HumanMessage and AIMessage objects."""
-    return {
-        "content": message.content,
-        "additional_kwargs": message.additional_kwargs,
-        "response_metadata": getattr(message, "response_metadata", {})
-    }
-
-
-def serialize_chat_history(chat_history):
-    """Helper function to serialize chat history containing messages."""
-    return [serialize_message(msg) for msg in chat_history]
-
-
-def chatbot_loop(agent_executor):
+def chatbot_loop(agent):
     print("Welcome to the Chatbot! Type 'exit' to end the conversation.\n")
     while True:
         user_input = input("You: ")
@@ -91,19 +66,11 @@ def chatbot_loop(agent_executor):
         print("\n--------------------------\n")
         try:
             logging.info(f"User input: {user_input}")
-            response = agent_executor.invoke(input=user_input)
+            user_message = HumanMessage(content=user_input)
+            ai_message = agent.run(user_message)
 
-            # Pretty-print the response if it's a dictionary
-            if isinstance(response, dict):
-                if "chat_history" in response:
-                    response["chat_history"] = serialize_chat_history(
-                        response["chat_history"])
-                logging.info(
-                    f"Agent response:\n{json.dumps(response, indent=4)}")
-                print(f"\n\nBot: \n{response['output']}\n")
-            else:
-                logging.info(f"Agent response: {response}")
-                print(f"\n\nBot: \n{response}\n")
+            logging.info(f"Agent response: {ai_message.content}")
+            print(f"\n\nBot: \n{ai_message.content}\n")
 
         except Exception as e:
             logging.error("Error generating response", exc_info=True)
@@ -111,4 +78,4 @@ def chatbot_loop(agent_executor):
 
 
 if __name__ == "__main__":
-    chatbot_loop(agent_executor)
+    chatbot_loop(agent)

@@ -1,33 +1,38 @@
-# agents/rag_agent.py
-
-from typing import List
 from langchain.schema import HumanMessage, AIMessage
 from langchain.memory import ConversationBufferMemory
+from langchain.agents import initialize_agent, AgentType
 from agents.base_agent import Agent
 
 
 class RAGAgent(Agent):
-    def __init__(self, retrieval_chain, memory: ConversationBufferMemory):
-        self.retrieval_chain = retrieval_chain
-        self.memory = memory
+    """
+    A wrapper for the LangChain RAG-based agent executor.
+    """
 
-    def run(self, message: HumanMessage) -> AIMessage:
-        # Append the user's message to memory
-        self.memory.chat_memory.add_user_message(message.content)
+    def __init__(self, llm, tools, memory: ConversationBufferMemory):
+        """
+        Initialize the RAG agent.
 
-        # Retrieve chat history from memory
-        chat_history = self.memory.chat_memory.messages
-
-        # Pass the correct input keys to the retrieval chain
-        response = self.retrieval_chain.invoke(
-            {"input": message.content, "chat_history": chat_history}
+        :param llm: The language model.
+        :param tools: List of tools used by the agent.
+        :param memory: Memory object to maintain chat history.
+        """
+        self.agent_executor = initialize_agent(
+            tools=tools,
+            llm=llm,
+            agent=AgentType.CHAT_CONVERSATIONAL_REACT_DESCRIPTION,
+            memory=memory,
+            verbose=True,
         )
 
-        # Safely extract the answer
-        answer_text = response.get("answer", "No answer found.")
+    def run(self, message: HumanMessage) -> AIMessage:
+        """
+        Process a HumanMessage and return an AIMessage response.
+        """
+        # Invoke the executor with the user's message
+        response = self.agent_executor.invoke(input=message.content)
 
-        # Append the assistant's response to memory
-        self.memory.chat_memory.add_ai_message(answer_text)
-
-        # Return an AIMessage
-        return AIMessage(content=answer_text)
+        # Handle the response and wrap it in an AIMessage
+        if isinstance(response, dict) and "output" in response:
+            return AIMessage(content=response["output"])
+        return AIMessage(content=str(response))
