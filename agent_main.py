@@ -49,14 +49,21 @@ rag_tool = RAGTool(chain=retrieval_chain, memory=memory)
 # Add the tool to the agent
 tools = [rag_tool]
 
+
+def initialize_rag_agent(llm, tools, memory):
+    """Function to initialize the RAG agent."""
+    agent_executor = initialize_agent(
+        tools=tools,
+        llm=llm,
+        agent=AgentType.CHAT_CONVERSATIONAL_REACT_DESCRIPTION,
+        memory=memory,
+        verbose=True,
+    )
+    return agent_executor
+
+
 # Initialize the agent
-agent_executor = initialize_agent(
-    tools=tools,
-    llm=llm,
-    agent=AgentType.CHAT_CONVERSATIONAL_REACT_DESCRIPTION,
-    memory=memory,
-    verbose=True,
-)
+agent_executor = initialize_rag_agent(llm, tools, memory)
 
 
 def serialize_message(message):
@@ -101,7 +108,6 @@ def chatbot_loop(agent_executor):
         except Exception as e:
             logging.error("Error generating response", exc_info=True)
             continue
-
 
 
 if __name__ == "__main__":

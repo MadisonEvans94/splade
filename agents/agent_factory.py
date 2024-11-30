@@ -4,6 +4,7 @@ from typing import Dict, Type
 from agents.conversation_agent import ConversationAgent
 from agents.graph_agent import GraphAgent
 from agents.web_search_agent import WebSearchAgent
+from agents.rag_agent import RAGAgent  # Import the RAGAgent
 
 from agents.base_agent import Agent
 
@@ -14,7 +15,8 @@ class AgentFactory:
         self.agent_registry: Dict[str, Type[Agent]] = {
             'conversation_agent': ConversationAgent,
             'web_search_agent': WebSearchAgent,
-            'graph_agent': GraphAgent,  # Register the new agent
+            'graph_agent': GraphAgent,
+            'rag_agent': RAGAgent,  # Register the RAGAgent
         }
 
     def factory(self, agent_type: str) -> Agent:
