@@ -1,11 +1,10 @@
-import json
 import logging
 import os
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
-from langchain.schema import HumanMessage, AIMessage
-from langchain.agents import initialize_agent, AgentType
+from langchain.schema import HumanMessage
+from agents.agent_factory import AgentFactory
 from agents.rag_agent import RAGAgent
 from agents.tools.rag_tool import RAGTool
 from utils import ChainSetup
@@ -14,6 +13,7 @@ from constants import (
     CONNECTION_ARGS,
     EXIT_COMMAND,
 )
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO,
@@ -51,8 +51,11 @@ rag_tool = RAGTool(chain=retrieval_chain, memory=memory)
 # Add the tool to the agent
 tools = [rag_tool]
 
-# Initialize the RAG agent
-agent = RAGAgent(llm=llm, tools=tools, memory=memory)
+# Initialize the AgentFactory with dependencies
+agent_factory = AgentFactory(llm=llm, tools=tools, memory=memory)
+
+# Create the agent using the factory
+agent = agent_factory.factory('rag_agent')
 
 
 def chatbot_loop(agent):
