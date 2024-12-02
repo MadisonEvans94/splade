@@ -48,7 +48,7 @@ def chatbot_loop(agent: Agent):
 
         try:
             ai_message = agent.run(HumanMessage(content=user_input))
-            print(f"Bot: {ai_message.content}\n")
+            print(f"\n-----\n\nBot: {ai_message.content}\n")
         except Exception as e:
             logging.error("Error generating response", exc_info=True)
 
