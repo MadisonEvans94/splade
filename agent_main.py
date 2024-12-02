@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 from dotenv import load_dotenv
@@ -5,8 +6,7 @@ from langchain_openai import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.schema import HumanMessage
 from agents.agent_factory import AgentFactory
-from agents.rag_agent import RAGAgent
-from agents.tools.rag_tool import RAGTool
+from agents.tools.tool_registry import ToolRegistry  # Import ToolRegistry
 from utils import ChainSetup
 from constants import (
     COLLECTION_NAME,
@@ -34,7 +34,7 @@ memory = ConversationBufferMemory(
     return_messages=True
 )
 
-# Initialize the chain setup
+# Retrieval Chain Object
 chain_setup = ChainSetup(
     collection_name=COLLECTION_NAME,
     connection_args=CONNECTION_ARGS,
@@ -42,13 +42,15 @@ chain_setup = ChainSetup(
     llm=llm
 )
 
-# Prepare the RAG chain
+# RAG chain instantiation
 retrieval_chain = chain_setup.setup_chain(hybrid=True)
 
-# Create the RAG tool
-rag_tool = RAGTool(chain=retrieval_chain, memory=memory)
+# Initialize ToolRegistry
+tool_registry = ToolRegistry()
 
-# Add the tool to the agent
+# Get RAGTool from ToolRegistry with required parameters
+rag_tool = tool_registry.get_tool(
+    'rag_tool', chain=retrieval_chain, memory=memory)
 tools = [rag_tool]
 
 # Initialize the AgentFactory with dependencies
@@ -56,6 +58,20 @@ agent_factory = AgentFactory(llm=llm, tools=tools, memory=memory)
 
 # Create the agent using the factory
 agent = agent_factory.factory('rag_agent')
+
+
+def serialize_message(message):
+    """Helper function to serialize HumanMessage and AIMessage objects."""
+    return {
+        "content": message.content,
+        "additional_kwargs": message.additional_kwargs,
+        "response_metadata": getattr(message, "response_metadata", {})
+    }
+
+
+def serialize_chat_history(chat_history):
+    """Helper function to serialize chat history containing messages."""
+    return [serialize_message(msg) for msg in chat_history]
 
 
 def chatbot_loop(agent):

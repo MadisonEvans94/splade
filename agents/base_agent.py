@@ -8,16 +8,18 @@ class Agent(ABC):
     """
     Abstract base class for all agents.
     """
+
     @abstractmethod
-    def run(self, messages: List[HumanMessage]) -> AIMessage:
+    def run(self, message: HumanMessage) -> AIMessage:
         """
         Abstract method that all agents must implement.
+        Takes a HumanMessage as input and returns an AIMessage as the response.
         """
         pass
 
-    def get_session_history(self) -> BaseChatMessageHistory:
+    def get_session_history(self):
         """
-        Method to return chat message history.
-        Can be overridden by agents that require session history.
+        Optional method to return chat session history.
+        Can be overridden by agents requiring history tracking.
         """
         return None
