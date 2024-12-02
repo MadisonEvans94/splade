@@ -1,6 +1,6 @@
 from typing import Dict, Type
 from langchain_openai import ChatOpenAI
-from langchain.memory import ConversationBufferMemory
+from langgraph.checkpoint.memory import MemorySaver
 
 from agents.conversation_agent import ConversationAgent
 from agents.graph_agent import GraphAgent
@@ -15,13 +15,12 @@ class AgentFactory:
     Factory class for creating agents with shared configurations.
     """
 
-    def __init__(self, llm: ChatOpenAI, memory: ConversationBufferMemory):
+    def __init__(self, llm: ChatOpenAI, memory: MemorySaver):
         """
         Initialize the factory with shared dependencies.
 
         :param llm: Language model instance.
-        :param memory: Shared conversation memory.
-        :param tools: List of tools available to agents.
+        :param memory: Shared persistent memory.
         """
         self.llm = llm
         self.memory = memory

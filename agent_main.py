@@ -5,10 +5,9 @@ from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage, AIMessage
 from agents.agent_factory import AgentFactory
 from agents.base_agent import Agent
-from agents.tools.tool_registry import ToolRegistry
-from langchain.memory import ConversationBufferMemory
 from utils import RAGChainSetup
 from constants import COLLECTION_NAME, CONNECTION_ARGS, EXIT_COMMAND
+from langgraph.checkpoint.memory import MemorySaver
 
 # Configure logging
 logging.basicConfig(level=logging.INFO,
@@ -23,19 +22,14 @@ if not OPENAI_API_KEY:
 # Initialize LLM
 llm = ChatOpenAI(openai_api_key=OPENAI_API_KEY, model="gpt-3.5-turbo")
 
-# Initialize shared memory
-shared_memory = ConversationBufferMemory(
-    memory_key="chat_history",
-    return_messages=True
-)
+# Initialize shared memory using LangGraph's MemorySaver for persistence
+shared_memory = MemorySaver()
 
 # Initialize AgentFactory with shared dependencies
 agent_factory = AgentFactory(llm=llm, memory=shared_memory)
 
 # Choose agent type ('rag_agent' or 'web_search_agent') and get agent
 agent = agent_factory.factory('web_search_agent')
-# To instantiate WebSearchAgent, use:
-# agent = agent_factory.factory('web_search_agent')
 
 
 def chatbot_loop(agent: Agent):
