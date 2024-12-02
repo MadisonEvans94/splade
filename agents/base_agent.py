@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List
 from langchain.schema import HumanMessage, AIMessage
+from langchain_core.chat_history import BaseChatMessageHistory
 
 
 class Agent(ABC):
@@ -16,9 +17,10 @@ class Agent(ABC):
         """
         pass
 
-    def get_session_history(self):
-        """
-        Optional method to return chat session history.
-        Can be overridden by agents requiring history tracking.
-        """
-        return None
+    # @abstractmethod
+    # def get_session_history(self) -> BaseChatMessageHistory:
+    #     """
+    #     Method to return chat session history.
+    #     Must be implemented by all agents that support session history.
+    #     """
+    #     pass

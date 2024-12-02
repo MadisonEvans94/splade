@@ -9,24 +9,24 @@ class ToolRegistry:
     ToolRegistry manages the registration and retrieval of tools.
     """
 
-    def __init__(self):
-        self.tool_registry: Dict[str, Type[BaseTool]] = {
-            'tavily_search': TavilySearchResults,
-            'rag_tool': RAGTool, 
-            # Add other tools here as needed
-        }
+    tool_registry: Dict[str, Type[BaseTool]] = {
+        'tavily_search': TavilySearchResults,
+        'rag_tool': RAGTool,
+    }
 
-    def get_tool(self, tool_name: str, **kwargs) -> BaseTool:
+    @classmethod
+    def get_tool(cls, tool_name: str, **kwargs) -> BaseTool:
         """
         Retrieve a single tool by name.
         """
-        tool_class = self.tool_registry.get(tool_name)
+        tool_class = cls.tool_registry.get(tool_name)
         if tool_class is None:
             raise ValueError(f"Unknown tool: {tool_name}")
         return tool_class(**kwargs)
 
-    def get_tools(self, tool_names: List[str], **kwargs) -> List[BaseTool]:
+    @classmethod
+    def get_tools(cls, tool_names: List[str], **kwargs) -> List[BaseTool]:
         """
         Retrieve multiple tools by their names.
         """
-        return [self.get_tool(name, **kwargs) for name in tool_names]
+        return [cls.get_tool(name, **kwargs) for name in tool_names]

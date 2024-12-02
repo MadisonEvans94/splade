@@ -1,0 +1,117 @@
+[INFO] 2024-12-02 10:56:09 - __main__ - Initialized ChatOpenAI LLM.
+[INFO] 2024-12-02 10:56:09 - __main__ - Initialized shared conversation memory.
+[INFO] 2024-12-02 10:56:09 - __main__ - Initialized AgentFactory with shared dependencies.
+[INFO] 2024-12-02 10:56:22 - __main__ - User selected agent: web_search_agent
+[INFO] 2024-12-02 10:56:22 - __main__ - Instantiated agent: web_search_agent
+[INFO] 2024-12-02 10:56:22 - __main__ - Generating graph plot for agent: web_search_agent
+[DEBUG] 2024-12-02 10:56:22 - __main__ - Ensured that visualization directory exists: agents/visualizations
+[DEBUG] 2024-12-02 10:56:22 - __main__ - Retrieved compiled workflow from the agent's 'app' attribute.
+[DEBUG] 2024-12-02 10:56:22 - __main__ - Retrieved graph from the compiled workflow.
+[DEBUG] 2024-12-02 10:56:22 - __main__ - Generated Mermaid diagram from the agent's workflow.
+[INFO] 2024-12-02 10:56:22 - __main__ - Saved Mermaid diagram to agents/visualizations/web_search_agent_diagram.mmd
+[ERROR] 2024-12-02 10:56:22 - __main__ - Failed to generate PNG from Mermaid diagram: Invalid draw method: API. Supported draw methods are: pyppeteer, api
+Traceback (most recent call last):
+  File "/Users/mcevans/Programming/AI/milvus_reference/agent_graph_plot_generator.py", line 144, in generate_and_save_plot
+    mermaid_png = graph.draw_mermaid_png(draw_method='API')
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mcevans/Programming/AI/milvus_reference/venv/lib/python3.11/site-packages/langchain_core/runnables/graph.py", line 609, in draw_mermaid_png
+    return draw_mermaid_png(
+           ^^^^^^^^^^^^^^^^^
+  File "/Users/mcevans/Programming/AI/milvus_reference/venv/lib/python3.11/site-packages/langchain_core/runnables/graph_mermaid.py", line 223, in draw_mermaid_png
+    raise ValueError(msg)
+ValueError: Invalid draw method: API. Supported draw methods are: pyppeteer, api
+[ERROR] 2024-12-02 10:56:22 - __main__ - An error occurred while generating the graph plot: Invalid draw method: API. Supported draw methods are: pyppeteer, api
+Traceback (most recent call last):
+  File "/Users/mcevans/Programming/AI/milvus_reference/agent_graph_plot_generator.py", line 205, in main
+    generate_and_save_plot(agent, selected_agent_type)
+  File "/Users/mcevans/Programming/AI/milvus_reference/agent_graph_plot_generator.py", line 144, in generate_and_save_plot
+    mermaid_png = graph.draw_mermaid_png(draw_method='API')
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mcevans/Programming/AI/milvus_reference/venv/lib/python3.11/site-packages/langchain_core/runnables/graph.py", line 609, in draw_mermaid_png
+    return draw_mermaid_png(
+           ^^^^^^^^^^^^^^^^^
+  File "/Users/mcevans/Programming/AI/milvus_reference/venv/lib/python3.11/site-packages/langchain_core/runnables/graph_mermaid.py", line 223, in draw_mermaid_png
+    raise ValueError(msg)
+ValueError: Invalid draw method: API. Supported draw methods are: pyppeteer, api
+[INFO] 2024-12-02 10:57:32 - __main__ - Initialized ChatOpenAI LLM.
+[INFO] 2024-12-02 10:57:32 - __main__ - Initialized shared conversation memory.
+[INFO] 2024-12-02 10:57:32 - __main__ - Initialized AgentFactory with shared dependencies.
+[INFO] 2024-12-02 10:57:38 - __main__ - User selected agent: web_search_agent
+[INFO] 2024-12-02 10:57:38 - __main__ - Instantiated agent: web_search_agent
+[INFO] 2024-12-02 10:57:38 - __main__ - Generating graph plot for agent: web_search_agent
+[DEBUG] 2024-12-02 10:57:38 - __main__ - Ensured that visualization directory exists: agents/visualizations
+[DEBUG] 2024-12-02 10:57:38 - __main__ - Retrieved compiled workflow from the agent's 'app' attribute.
+[DEBUG] 2024-12-02 10:57:38 - __main__ - Retrieved graph from the compiled workflow.
+[DEBUG] 2024-12-02 10:57:38 - __main__ - Generated Mermaid diagram from the agent's workflow.
+[INFO] 2024-12-02 10:57:38 - __main__ - Saved Mermaid diagram to agents/visualizations/web_search_agent_diagram.mmd
+[ERROR] 2024-12-02 10:57:38 - __main__ - Failed to generate PNG from Mermaid diagram: Invalid draw method: api. Supported draw methods are: pyppeteer, api
+Traceback (most recent call last):
+  File "/Users/mcevans/Programming/AI/milvus_reference/agent_graph_plot_generator.py", line 144, in generate_and_save_plot
+    mermaid_png = graph.draw_mermaid_png(
+                  ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mcevans/Programming/AI/milvus_reference/venv/lib/python3.11/site-packages/langchain_core/runnables/graph.py", line 609, in draw_mermaid_png
+    return draw_mermaid_png(
+           ^^^^^^^^^^^^^^^^^
+  File "/Users/mcevans/Programming/AI/milvus_reference/venv/lib/python3.11/site-packages/langchain_core/runnables/graph_mermaid.py", line 223, in draw_mermaid_png
+    raise ValueError(msg)
+ValueError: Invalid draw method: api. Supported draw methods are: pyppeteer, api
+[ERROR] 2024-12-02 10:57:38 - __main__ - An error occurred while generating the graph plot: Invalid draw method: api. Supported draw methods are: pyppeteer, api
+Traceback (most recent call last):
+  File "/Users/mcevans/Programming/AI/milvus_reference/agent_graph_plot_generator.py", line 206, in main
+    generate_and_save_plot(agent, selected_agent_type)
+  File "/Users/mcevans/Programming/AI/milvus_reference/agent_graph_plot_generator.py", line 144, in generate_and_save_plot
+    mermaid_png = graph.draw_mermaid_png(
+                  ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mcevans/Programming/AI/milvus_reference/venv/lib/python3.11/site-packages/langchain_core/runnables/graph.py", line 609, in draw_mermaid_png
+    return draw_mermaid_png(
+           ^^^^^^^^^^^^^^^^^
+  File "/Users/mcevans/Programming/AI/milvus_reference/venv/lib/python3.11/site-packages/langchain_core/runnables/graph_mermaid.py", line 223, in draw_mermaid_png
+    raise ValueError(msg)
+ValueError: Invalid draw method: api. Supported draw methods are: pyppeteer, api
+[INFO] 2024-12-02 10:58:14 - __main__ - Initialized ChatOpenAI LLM.
+[INFO] 2024-12-02 10:58:14 - __main__ - Initialized shared conversation memory.
+[INFO] 2024-12-02 10:58:14 - __main__ - Initialized AgentFactory with shared dependencies.
+[INFO] 2024-12-02 10:58:15 - __main__ - User selected agent: web_search_agent
+[INFO] 2024-12-02 10:58:15 - __main__ - Instantiated agent: web_search_agent
+[INFO] 2024-12-02 10:58:15 - __main__ - Generating graph plot for agent: web_search_agent
+[DEBUG] 2024-12-02 10:58:15 - __main__ - Ensured that visualization directory exists: agents/visualizations
+[DEBUG] 2024-12-02 10:58:15 - __main__ - Retrieved compiled workflow from the agent's 'app' attribute.
+[DEBUG] 2024-12-02 10:58:15 - __main__ - Retrieved graph from the compiled workflow.
+[DEBUG] 2024-12-02 10:58:15 - __main__ - Generated Mermaid diagram from the agent's workflow.
+[INFO] 2024-12-02 10:58:15 - __main__ - Saved Mermaid diagram to agents/visualizations/web_search_agent_diagram.mmd
+[ERROR] 2024-12-02 10:58:15 - __main__ - Failed to generate PNG from Mermaid diagram: Invalid draw method: api. Supported draw methods are: pyppeteer, api
+Traceback (most recent call last):
+  File "/Users/mcevans/Programming/AI/milvus_reference/agent_graph_plot_generator.py", line 144, in generate_and_save_plot
+    mermaid_png = graph.draw_mermaid_png(draw_method='api')
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mcevans/Programming/AI/milvus_reference/venv/lib/python3.11/site-packages/langchain_core/runnables/graph.py", line 609, in draw_mermaid_png
+    return draw_mermaid_png(
+           ^^^^^^^^^^^^^^^^^
+  File "/Users/mcevans/Programming/AI/milvus_reference/venv/lib/python3.11/site-packages/langchain_core/runnables/graph_mermaid.py", line 223, in draw_mermaid_png
+    raise ValueError(msg)
+ValueError: Invalid draw method: api. Supported draw methods are: pyppeteer, api
+[ERROR] 2024-12-02 10:58:15 - __main__ - An error occurred while generating the graph plot: Invalid draw method: api. Supported draw methods are: pyppeteer, api
+Traceback (most recent call last):
+  File "/Users/mcevans/Programming/AI/milvus_reference/agent_graph_plot_generator.py", line 206, in main
+    generate_and_save_plot(agent, selected_agent_type)
+  File "/Users/mcevans/Programming/AI/milvus_reference/agent_graph_plot_generator.py", line 144, in generate_and_save_plot
+    mermaid_png = graph.draw_mermaid_png(draw_method='api')
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mcevans/Programming/AI/milvus_reference/venv/lib/python3.11/site-packages/langchain_core/runnables/graph.py", line 609, in draw_mermaid_png
+    return draw_mermaid_png(
+           ^^^^^^^^^^^^^^^^^
+  File "/Users/mcevans/Programming/AI/milvus_reference/venv/lib/python3.11/site-packages/langchain_core/runnables/graph_mermaid.py", line 223, in draw_mermaid_png
+    raise ValueError(msg)
+ValueError: Invalid draw method: api. Supported draw methods are: pyppeteer, api
+[INFO] 2024-12-02 11:00:48 - __main__ - Initialized ChatOpenAI LLM.
+[INFO] 2024-12-02 11:00:48 - __main__ - Initialized shared conversation memory.
+[INFO] 2024-12-02 11:00:48 - __main__ - Initialized AgentFactory with shared dependencies.
+[INFO] 2024-12-02 11:00:50 - __main__ - User selected agent: web_search_agent
+[INFO] 2024-12-02 11:00:50 - __main__ - Instantiated agent: web_search_agent
+[INFO] 2024-12-02 11:00:50 - __main__ - Generating graph plot for agent: web_search_agent
+[DEBUG] 2024-12-02 11:00:50 - __main__ - Ensured that visualization directory exists: agents/visualizations
+[DEBUG] 2024-12-02 11:00:50 - __main__ - Retrieved compiled workflow from the agent's 'app' attribute.
+[DEBUG] 2024-12-02 11:00:50 - __main__ - Retrieved graph from the compiled workflow.
+[DEBUG] 2024-12-02 11:00:50 - __main__ - Generated Mermaid diagram from the agent's workflow.
+[INFO] 2024-12-02 11:00:50 - __main__ - Saved Mermaid diagram to agents/visualizations/web_search_agent_diagram.mmd
+[INFO] 2024-12-02 11:00:51 - __main__ - Saved graph visualization as PNG to agents/visualizations/web_search_agent_plot.png

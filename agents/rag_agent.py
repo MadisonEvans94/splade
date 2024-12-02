@@ -1,38 +1,57 @@
-from langchain.schema import HumanMessage, AIMessage
-from langchain.memory import ConversationBufferMemory
-from langchain.agents import initialize_agent, AgentType
+from langgraph.graph import END, START, StateGraph, MessagesState
+from langchain_core.messages import HumanMessage, AIMessage
+from langgraph.prebuilt import create_react_agent, ToolNode
+from langgraph.checkpoint.memory import MemorySaver
 from agents.base_agent import Agent
 
 
 class RAGAgent(Agent):
     """
-    A wrapper for the LangChain RAG-based agent executor.
+    LangGraph-based RAG agent implementation.
     """
 
-    def __init__(self, llm, tools, memory: ConversationBufferMemory):
+    def __init__(self, llm, memory, tools):
         """
-        Initialize the RAG agent.
+        Initialize the RAG agent using LangGraph.
 
         :param llm: The language model.
-        :param tools: List of tools used by the agent.
-        :param memory: Memory object to maintain chat history.
+        :param memory: Shared conversation buffer memory.
+        :param tools: List of tools available to the agent.
         """
-        self.agent_executor = initialize_agent(
-            tools=tools,
-            llm=llm,
-            agent=AgentType.CHAT_CONVERSATIONAL_REACT_DESCRIPTION,
-            memory=memory,
-            verbose=True,
+        self.memory = memory
+        self.tools = tools
+        self.llm = llm
+
+        # Create LangGraph nodes
+        tool_node = ToolNode(tools=self.tools)
+        graph_agent = create_react_agent(self.llm, tools=self.tools)
+
+        # Define state graph
+        self.workflow = StateGraph(MessagesState)
+        self.workflow.add_node("agent", graph_agent)
+        self.workflow.add_node("tools", tool_node)
+
+        # Add edges
+        self.workflow.add_edge(START, "agent")
+        self.workflow.add_conditional_edges(
+            "agent", lambda state: "tools" if state['messages'][-1].tool_calls else END
         )
+        self.workflow.add_edge("tools", "agent")
+
+        # Compile graph with persistence
+        self.checkpointer = MemorySaver()
+        self.app = self.workflow.compile(checkpointer=self.checkpointer)
 
     def run(self, message: HumanMessage) -> AIMessage:
         """
-        Process a HumanMessage and return an AIMessage response.
-        """
-        # Invoke the executor with the user's message
-        response = self.agent_executor.invoke(input=message.content)
+        Process a HumanMessage and return an AIMessage response using LangGraph.
 
-        # Handle the response and wrap it in an AIMessage
-        if isinstance(response, dict) and "output" in response:
-            return AIMessage(content=response["output"])
-        return AIMessage(content=str(response))
+        :param message: User's input message.
+        :return: AIMessage response.
+        """
+        inputs = {"messages": [message]}
+        final_state = self.app.invoke(
+            inputs, config={"configurable": {
+                "thread_id": 1}}  # Unique thread ID
+        )
+        return final_state["messages"][-1]
