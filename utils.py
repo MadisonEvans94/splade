@@ -38,7 +38,7 @@ def get_dense_embedding_func(openai_api_key: str) -> OpenAIEmbeddings:
     return OpenAIEmbeddings(openai_api_key=openai_api_key, model="text-embedding-ada-002")
 
 
-class ChainSetup:
+class RAGChainSetup:
     def __init__(self, collection_name: str, connection_args: dict, openai_api_key: str, llm):
         self.collection = get_collection(collection_name, connection_args)
         self.corpus = get_corpus(self.collection)

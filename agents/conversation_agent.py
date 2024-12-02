@@ -1,7 +1,7 @@
 from langchain_openai import ChatOpenAI
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain.memory import ConversationBufferMemory
-from langchain.schema import HumanMessage, AIMessage, BaseMessage
+from langchain.schema import HumanMessage, AIMessage
 from typing import List
 import logging
 from langchain_core.chat_history import BaseChatMessageHistory

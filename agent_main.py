@@ -6,8 +6,8 @@ from langchain_openai import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.schema import HumanMessage
 from agents.agent_factory import AgentFactory
-from agents.tools.tool_registry import ToolRegistry  # Import ToolRegistry
-from utils import ChainSetup
+from agents.tools.tool_registry import ToolRegistry  
+from utils import RAGChainSetup
 from constants import (
     COLLECTION_NAME,
     CONNECTION_ARGS,
@@ -33,9 +33,9 @@ memory = ConversationBufferMemory(
     memory_key="chat_history",
     return_messages=True
 )
-
+#TODO: make retrieval chain more streamlined 
 # Retrieval Chain Object
-chain_setup = ChainSetup(
+rag_chain_setup = RAGChainSetup(
     collection_name=COLLECTION_NAME,
     connection_args=CONNECTION_ARGS,
     openai_api_key=OPENAI_API_KEY,
@@ -43,7 +43,7 @@ chain_setup = ChainSetup(
 )
 
 # RAG chain instantiation
-retrieval_chain = chain_setup.setup_chain(hybrid=True)
+retrieval_chain = rag_chain_setup.setup_chain(hybrid=True)
 
 # Initialize ToolRegistry
 tool_registry = ToolRegistry()

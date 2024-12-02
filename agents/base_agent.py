@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import List
 from langchain.schema import HumanMessage, AIMessage
-from langchain_core.chat_history import BaseChatMessageHistory
 
 
 class Agent(ABC):
