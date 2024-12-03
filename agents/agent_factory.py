@@ -2,6 +2,7 @@ from typing import Dict, Type
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
 
+from agents.classification_agent import ClassificationAgent
 from agents.conversation_agent import ConversationAgent
 from agents.graph_agent import GraphAgent
 from agents.web_search_agent import WebSearchAgent
@@ -28,6 +29,7 @@ class AgentFactory:
         self.agent_registry: Dict[str, Type[Agent]] = {
             # 'conversation_agent': ConversationAgent,
             'web_search_agent': WebSearchAgent,
+            'classification_agent': ClassificationAgent,
             # 'graph_agent': GraphAgent,
             # 'rag_agent': RAGAgent,
         }
