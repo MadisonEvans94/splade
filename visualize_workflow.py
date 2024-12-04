@@ -5,11 +5,8 @@ import os
 from typing import Dict, Type
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_openai import ChatOpenAI
-
-from agent_factory import AgentFactory
-from base_agent import Agent
-# from utils import get_available_agents, prompt_user_for_agent
-
+from agent_resources.agent_factory import AgentFactory
+from agent_resources.base_agent import Agent
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +85,7 @@ def main():
     # Define the path where you want to save the visualization
     save_directory = os.path.dirname(__file__)  # Directory of the current script
     save_path = os.path.join(
-        save_directory, f"agents/{selected_agent_type}/{selected_agent_type}_workflow.png")
+        save_directory, f"agent_resources/agents/{selected_agent_type}/{selected_agent_type}_workflow.png")
 
     # Visualize and save the workflow
     agent.visualize_workflow(save_path=save_path)
