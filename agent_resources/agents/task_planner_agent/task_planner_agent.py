@@ -2,8 +2,9 @@ import logging
 from typing import List, TypedDict
 from langgraph.graph import StateGraph
 from langchain.schema import BaseMessage, AIMessage, HumanMessage
-from agents.base_agent import Agent
-
+from agent_resources.base_agent import Agent
+from langchain.globals import set_verbose
+set_verbose(True)
 
 class State(TypedDict):
     text: str
@@ -36,7 +37,7 @@ class TaskPlannerAgent(Agent):
         workflow.set_finish_point("split_tasks_node")
 
         # Compile the agent
-        agent = workflow.compile(debug=True)
+        agent = workflow.compile(debug=False)
 
         return agent
 

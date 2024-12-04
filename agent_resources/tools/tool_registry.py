@@ -1,7 +1,7 @@
 from typing import Dict, Type, List
 from langchain.tools import BaseTool
 from langchain_community.tools.tavily_search import TavilySearchResults
-from agents.tools.rag_tool import RAGTool
+from .rag_tool import RAGTool
 
 
 class ToolRegistry:

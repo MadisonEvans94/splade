@@ -1,9 +1,9 @@
 import logging
-from typing import List, TypedDict
 from langgraph.graph import StateGraph, END
 from langchain_core.messages import BaseMessage, AIMessage
-from agents.base_agent import Agent
-from agents.classification_agent.nodes import State, classification_node, entity_extraction_node, summarization_node
+
+from agent_resources.base_agent import Agent
+from .nodes import State, classification_node, entity_extraction_node, summarization_node
 
 
 

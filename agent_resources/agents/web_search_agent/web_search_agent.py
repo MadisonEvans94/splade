@@ -1,8 +1,9 @@
 import logging
 from langchain_core.messages import HumanMessage, AIMessage
 from langgraph.prebuilt import create_react_agent
-from agents.base_agent import Agent
-from agents.tools.tool_registry import ToolRegistry
+from agent_resources.tools.tool_registry import ToolRegistry
+from agent_resources.base_agent import Agent
+
 
 # Initialize a logger specific to this module
 logger = logging.getLogger(__name__)
