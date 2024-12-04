@@ -5,6 +5,7 @@ from langchain.schema import HumanMessage
 from dotenv import load_dotenv
 load_dotenv()
 
+
 class State(TypedDict):
     text: str
     classification: str
@@ -13,6 +14,7 @@ class State(TypedDict):
 
 
 llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
+
 
 def classification_node(state: State):
     ''' Classify the text into one of the categories: News, Blog, Research, or Other '''
