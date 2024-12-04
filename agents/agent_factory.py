@@ -3,7 +3,7 @@ from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
 from agents.classification_agent.classification_agent import ClassificationAgent
 from agents.task_planner_agent.task_planner_agent import TaskPlannerAgent
-from agents.web_search_agent import WebSearchAgent
+from agents.web_search_agent.web_search_agent import WebSearchAgent
 from agents.base_agent import Agent
 
 
@@ -26,6 +26,8 @@ class AgentFactory:
             'web_search_agent': WebSearchAgent,
             'classification_agent': ClassificationAgent,
             'task_planner_agent': TaskPlannerAgent,
+            # rag_agent, 
+            # etc...
         }
 
     def factory(self, agent_type: str) -> Agent:
