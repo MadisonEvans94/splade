@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage
 from agent_resources.agent_factory import AgentFactory
-from agent_resources.utils import get_available_agents, prompt_user_for_agent
+from utils import get_available_agents, prompt_user_for_agent
 from constants import EXIT_COMMAND
 from langgraph.checkpoint.memory import MemorySaver
 
