@@ -1,5 +1,5 @@
 import logging
-from typing import List, TypedDict, Union
+from typing import List, TypedDict
 from langgraph.graph import StateGraph
 from langchain.schema import BaseMessage, AIMessage, HumanMessage
 from agents.base_agent import Agent
@@ -7,7 +7,6 @@ from agents.base_agent import Agent
 
 class State(TypedDict):
     text: str
-    needs_splitting: bool
     tasks: List[str]
 
 
@@ -23,94 +22,57 @@ class TaskPlannerAgent(Agent):
         self.agent = self.compile_graph()
 
     def compile_graph(self):
+        """
+        Compiles the workflow graph for the agent.
+        """
         workflow = StateGraph(State)
 
-        # Add nodes
-        determine_split = workflow.add_node(
-            "determine_split_node", self.determine_split_node)
-        split_task = workflow.add_node("split_task_node", self.split_task_node)
-        no_split = workflow.add_node("no_split_node", self.no_split_node)
-        collect_tasks = workflow.add_node(
-            "collect_tasks_node", self.collect_tasks_node)
-
-        # Add conditional edges
-        def determine_next_node(state: State) -> Union[str, List[str]]:
-            if state["needs_splitting"]:
-                return "split_task_node"
-            else:
-                return "no_split_node"
-
-        workflow.add_conditional_edges(
-            source="determine_split_node",
-            path=determine_next_node
-        )
-
-        # Both split_task_node and no_split_node lead to collect_tasks_node
-        workflow.add_edge("split_task_node", "collect_tasks_node")
-        workflow.add_edge("no_split_node", "collect_tasks_node")
+        # Add the single node
+        split_tasks = workflow.add_node(
+            "split_tasks_node", self.split_tasks_node)
 
         # Define start and end nodes
-        workflow.set_entry_point("determine_split_node")
-        workflow.set_finish_point("collect_tasks_node")
+        workflow.set_entry_point("split_tasks_node")
+        workflow.set_finish_point("split_tasks_node")
 
         # Compile the agent
         agent = workflow.compile(debug=True)
 
         return agent
 
-    def determine_split_node(self, state: State) -> State:
+    def split_tasks_node(self, state: State) -> State:
         """
-        Determines whether the task needs to be split into subtasks.
-        """
-        prompt = (
-            f"Does the following task need to be split into smaller subtasks? "
-            f"Answer 'Yes' or 'No'.\n\nTask: {state['text']}\n\nAnswer:"
-        )
-        message = HumanMessage(content=prompt)
-        response = self.llm.invoke([message]).content.strip().lower()
-        state["needs_splitting"] = "yes" in response
-        return state
-
-    def split_task_node(self, state: State) -> State:
-        """
-        Splits the task into subtasks using the LLM.
+        Splits the input text into high-level tasks.
         """
         prompt = (
-            f"Please split the following task into a list of subtasks:\n\n"
-            f"{state['text']}\n\nSubtasks:"
+            f"Split the following text into clear and distinct high-level tasks. "
+            f"Each task should represent a complete action or goal.\n\n"
+            f"Text: {state['text']}\n\nTasks:"
         )
         message = HumanMessage(content=prompt)
         response = self.llm.invoke([message]).content.strip()
-        # Parse the LLM's response into a list
-        subtasks = [
-            line.strip("- ").strip()
+        tasks = [
+            line.strip("- ").strip().lstrip('0123456789.').strip()
             for line in response.split("\n") if line.strip()
         ]
-        state["tasks"] = subtasks
-        return state
-
-    def no_split_node(self, state: State) -> State:
-        """
-        Handles tasks that do not need splitting by adding the original task to the tasks list.
-        """
-        state["tasks"] = [state["text"]]
-        return state
-
-    def collect_tasks_node(self, state: State) -> State:
-        """
-        Final node that prepares the state for output.
-        """
-        # Tasks are already in state["tasks"]
+        state["tasks"] = tasks
         return state
 
     def run(self, message: BaseMessage) -> AIMessage:
+        """
+        Processes the input message through the workflow and returns the response.
+        """
         try:
             state_input = {"text": message.content}
             result_state = self.agent.invoke(state_input)
             tasks = result_state["tasks"]
-            # Format the tasks into a string response
-            response_content = "\n".join(f"- {task}" for task in tasks)
+
+            # Format the tasks into a response
+            response_content = "Identified tasks:\n" + "\n".join(
+                [f"- {task}" for task in tasks]
+            )
             return AIMessage(content=response_content)
+
         except Exception as e:
             logger.error("Error generating response", exc_info=True)
             return AIMessage(
