@@ -16,9 +16,9 @@ class State(TypedDict):
     summary: str
 
 
-llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
+# llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
 
-def classification_node(state: State):
+def classification_node(state: State, llm):
     ''' Classify the text into one of the categories: News, Blog, Research, or Other '''
     prompt = PromptTemplate(
         input_variables=["text"],
@@ -29,7 +29,7 @@ def classification_node(state: State):
     return {"classification": classification}
 
 
-def entity_extraction_node(state: State):
+def entity_extraction_node(state: State, llm):
     ''' Extract all the entities (Person, Organization, Location) from the text '''
     prompt = PromptTemplate(
         input_variables=["text"],
@@ -40,7 +40,7 @@ def entity_extraction_node(state: State):
     return {"entities": entities}
 
 
-def summarization_node(state: State):
+def summarization_node(state: State, llm):
     ''' Summarize the text in one short sentence '''
     prompt = PromptTemplate(
         input_variables=["text"],

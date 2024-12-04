@@ -1,16 +1,11 @@
 import logging
 from typing import List, TypedDict
 from langgraph.graph import StateGraph, END
-from langchain_core.messages import HumanMessage, AIMessage
-from langgraph.prebuilt import create_react_agent
+from langchain_core.messages import BaseMessage, AIMessage
 from agents.base_agent import Agent
-from agents.nodes.classification_node import classification_node, entity_extraction_node, summarization_node
+from agents.classification_agent.nodes import State, classification_node, entity_extraction_node, summarization_node
 
-class State(TypedDict):
-    text: str
-    classification: str
-    entities: List[str]
-    summary: str
+
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +38,7 @@ class ClassificationAgent(Agent):
         
         return agent
         
-    def run(self, message: HumanMessage) -> AIMessage:
+    def run(self, message: BaseMessage) -> AIMessage:
         try:
             state_input = {"text": message.content}
             result = self.agent.invoke(state_input)

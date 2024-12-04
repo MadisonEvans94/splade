@@ -1,13 +1,9 @@
 from typing import Dict, Type
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
-
-from agents.classification_agent import ClassificationAgent
-from agents.conversation_agent import ConversationAgent
-from agents.graph_agent import GraphAgent
+from agents.classification_agent.classification_agent import ClassificationAgent
+from agents.task_planner_agent.task_planner_agent import TaskPlannerAgent
 from agents.web_search_agent import WebSearchAgent
-from agents.rag_agent import RAGAgent
-
 from agents.base_agent import Agent
 
 
@@ -27,11 +23,9 @@ class AgentFactory:
         self.memory = memory
 
         self.agent_registry: Dict[str, Type[Agent]] = {
-            # 'conversation_agent': ConversationAgent,
             'web_search_agent': WebSearchAgent,
             'classification_agent': ClassificationAgent,
-            # 'graph_agent': GraphAgent,
-            # 'rag_agent': RAGAgent,
+            'task_planner_agent': TaskPlannerAgent,
         }
 
     def factory(self, agent_type: str) -> Agent:

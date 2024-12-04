@@ -32,9 +32,6 @@ def main():
     # Initialize AgentFactory with shared dependencies
     agent_factory = AgentFactory(llm=llm, memory=shared_memory)
 
-    # # Choose agent type ('rag_agent' or 'web_search_agent') and get agent
-    # agent = agent_factory.factory('classification_agent')
-
     # Retrieve available agents
     available_agents = get_available_agents(agent_factory)
     if not available_agents:
