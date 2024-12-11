@@ -21,14 +21,10 @@ class WebSearchAgent(Agent):
         :param memory: Persistent memory for managing conversation history.
         """
 
-        # Retrieve the tavily_search tool from the registry
         web_search_tool = ToolRegistry.get_tool('tavily_search', max_results=1)
-
         self.tools = [web_search_tool]
         self.llm = llm
         self.memory = memory
-
-        # Create a prebuilt React agent with tools and memory
         self.agent = self.compile_graph()
         
     def compile_graph(self):
@@ -46,10 +42,10 @@ class WebSearchAgent(Agent):
         :param message: User's input message.
         :return: AIMessage response.
         """
+
         try:
             thread_id = "default"  
             config = {"configurable": {"thread_id": thread_id}}
-
             response = self.agent.invoke(
                 {"messages": [message]}, config=config)
 

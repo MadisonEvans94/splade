@@ -49,9 +49,12 @@ class ClassificationAgent(Agent):
         return agent
 
     def run(self, message: BaseMessage) -> AIMessage:
+        logger.info(f"message: {message}")
         try:
             state_input = {"text": message.content}
+            logger.info(f"state_input: {state_input}")
             result = self.agent.invoke(state_input)
+            logger.info(f"result: {result}")
             return AIMessage(content=result['classification'])
         except Exception as e:
             logger.error("Error generating response", exc_info=True)

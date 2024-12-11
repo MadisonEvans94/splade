@@ -35,7 +35,7 @@ class Agent(ABC):
         pass
 
     @abstractmethod
-    def run(self, message) -> AIMessage:
+    def run(self, message, **kwargs) -> AIMessage:
         """
         Abstract method that all agents must implement.
         Takes a HumanMessage as input and returns an AIMessage as the response.

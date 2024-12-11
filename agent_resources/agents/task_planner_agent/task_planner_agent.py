@@ -29,14 +29,12 @@ class TaskPlannerAgent(Agent):
         workflow = StateGraph(State)
 
         # Add the single node
-        split_tasks = workflow.add_node(
-            "split_tasks_node", self.split_tasks_node)
+        workflow.add_node("split_tasks_node", self.split_tasks_node)
 
         # Define start and end nodes
         workflow.set_entry_point("split_tasks_node")
         workflow.set_finish_point("split_tasks_node")
 
-        # Compile the agent
         agent = workflow.compile(debug=False)
 
         return agent
@@ -68,7 +66,6 @@ class TaskPlannerAgent(Agent):
             result_state = self.agent.invoke(state_input)
             tasks = result_state["tasks"]
 
-            # Format the tasks into a response
             response_content = "Identified tasks:\n" + "\n".join(
                 [f"- {task}" for task in tasks]
             )
