@@ -26,6 +26,7 @@ class AgentFactory:
             'web_search_agent': WebSearchAgent,
             'classification_agent': ClassificationAgent,
             'task_planner_agent': TaskPlannerAgent,
+            
             'rag_agent': RAGAgent
             # etc...
         }
@@ -40,4 +41,6 @@ class AgentFactory:
         agent_class = self.agent_registry.get(agent_type)
         if agent_class is None:
             raise ValueError(f"Unknown agent type: {agent_type}")
+        elif agent_type == "rag_agent":
+            return agent_class(llm=self.llm, memory=self.memory, domain_knowledge="Intel, its products, and services")
         return agent_class(llm=self.llm, memory=self.memory)

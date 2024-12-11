@@ -42,6 +42,7 @@ def main():
     
     try: 
         agent = agent_factory.factory(selected_agent_type)
+
         logger.info(f"Instantiated agent: {selected_agent_type}")
     except Exception as e:
         logger.error(
