@@ -12,9 +12,9 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # and you need to go up directories, you can do:
 # BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "agents", "rag_agent"))
 
-PERSIST_DIR = os.path.join(BASE_DIR, "../agents/rag_agent/chroma_langchain_db")
+PERSIST_DIR = os.path.join(BASE_DIR, "../../chroma_langchain_db")
 PERSIST_DIR = os.path.abspath(PERSIST_DIR)
-
+print(f"PERSIST_DIR: {PERSIST_DIR}")
 embeddings = OpenAIEmbeddings()
 vector_store = Chroma(
     collection_name="example_collection",

@@ -42,5 +42,5 @@ class AgentFactory:
         if agent_class is None:
             raise ValueError(f"Unknown agent type: {agent_type}")
         elif agent_type == "rag_agent":
-            return agent_class(llm=self.llm, memory=self.memory, domain_knowledge="Intel, its products, and services")
+            return agent_class(llm=self.llm, memory=self.memory, domain_knowledge="Machine Learning")
         return agent_class(llm=self.llm, memory=self.memory)
